@@ -31,9 +31,9 @@ Source of truth for progress. Mark `[x]` only with evidence.
 
 ## Stage 3 — Load test race (100 parallel)
 **Ready when:** k6 script run; summary shows ≤1 success for same slot; rest fail cleanly.
-- [ ] `load/race-book.js`
-- [ ] run k6 against live API
-- [ ] paste summary in PLAN / commit artifact
+- [x] `load/race-book.js`
+- [x] run k6 against live API
+- [x] paste summary in PLAN / commit artifact
 
 ## Stage 4 — Web Widget (Shadow DOM) + hosted page
 **Ready when:** embed script mounts isolated UI; `/book` works; no city step; BSM-like airy orange palette.
@@ -65,3 +65,13 @@ Source of truth for progress. Mark `[x]` only with evidence.
 
 ## Blockers
 - None for Stage 1–2. If real Telegram/WhatsApp tokens missing at Stage 6–7 → ship dry-run + env-gated live mode.
+
+
+### Stage 3 evidence (2026-07-17)
+```
+success(200): 1
+conflict(409): 99
+other: 0
+PASS: exactly one winner
+DB: slot 288 status=booked; one booking Racer 6
+```
