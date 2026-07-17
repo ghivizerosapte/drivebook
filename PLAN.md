@@ -37,21 +37,21 @@ Source of truth for progress. Mark `[x]` only with evidence.
 
 ## Stage 4 — Web Widget (Shadow DOM) + hosted page
 **Ready when:** embed script mounts isolated UI; `/book` works; no city step; BSM-like airy orange palette.
-- [ ] widget build
-- [ ] hosted page
-- [ ] embed.js
+- [x] widget build
+- [x] hosted page
+- [x] embed.js
 
 ## Stage 5 — Admin / test panel
 **Ready when:** can list instructors, open slots, force-cancel booking via UI.
-- [ ] admin static UI
+- [x] admin static UI
 
 ## Stage 6 — Telegram bot
 **Ready when:** bot can list slots + create booking via API (token optional / dry-run mode).
-- [ ] bots/telegram
+- [x] bots/telegram
 
 ## Stage 7 — WhatsApp adapter
 **Ready when:** webhook receiver + outbound stub maps to same booking API.
-- [ ] bots/whatsapp
+- [x] bots/whatsapp
 
 ---
 
@@ -75,3 +75,10 @@ other: 0
 PASS: exactly one winner
 DB: slot 288 status=booked; one booking Racer 6
 ```
+
+
+### Stage 4–7 evidence (2026-07-17)
+- `/book` 200, `/widget/embed.js` 200, `attachShadow` present
+- `/admin/` 200, stats instructors=100
+- Telegram dry-run booked #3
+- WhatsApp dry-run booked #4
