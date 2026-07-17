@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: drivebook-db
+    environment:
+      POSTGRES_USER: drivebook
+      POSTGRES_PASSWORD: drivebook
+      POSTGRES_DB: drivebook
+    ports:
+      - "5433:5432"
+    volumes:
+      - drivebook_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U drivebook -d drivebook"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  drivebook_pg:
