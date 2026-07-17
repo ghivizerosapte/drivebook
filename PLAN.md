@@ -13,21 +13,21 @@ Source of truth for progress. Mark `[x]` only with evidence.
 - [x] Root `AGENTS.md`
 - [x] `PLAN.md` (this file)
 - [x] `SPEC.md` (reconstructed TZ)
-- [ ] Per-module `AGENTS.md` as dirs are created (api → widget → admin → bots)
+- [x] Per-module `AGENTS.md` as dirs are created (api → …) — api done
 
 ## Stage 1 — DB schema + SQL migrations
 **Ready when:** migrations apply cleanly on empty Postgres; schema matches SPEC; `psql \d` shows tables + constraints.
-- [ ] `api/migrations/001_init.sql`
-- [ ] migrate runner
-- [ ] docker-compose Postgres
-- [ ] evidence: migrate output + `\d+`
+- [x] `api/migrations/001_init.sql`
+- [x] migrate runner
+- [x] docker-compose Postgres
+- [x] evidence: migrate output + `\d+`
 
 ## Stage 2 — Core API + DB race protection
 **Ready when:** all SPEC endpoints respond; double-book same slot → one 201 one 409; idempotency key replays same booking.
-- [ ] FastAPI app structure
-- [ ] endpoints
-- [ ] seed 100 instructors + slots
-- [ ] evidence: curl booking + conflict
+- [x] FastAPI app structure
+- [x] endpoints
+- [x] seed 100 instructors + slots
+- [x] evidence: curl booking + conflict
 
 ## Stage 3 — Load test race (100 parallel)
 **Ready when:** k6 script run; summary shows ≤1 success for same slot; rest fail cleanly.
