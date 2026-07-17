@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DriveBook Admin / QA</title>
+  <style>
+    :root { --ink:#2e2e36; --orange:#f9812a; --line:#e9ecef; --bg:#f7f8fa; }
+    body { margin:0; font-family: system-ui,sans-serif; background:var(--bg); color:var(--ink); }
+    header { background:#fff; border-bottom:1px solid var(--line); padding:14px 18px; display:flex; gap:16px; align-items:center; }
+    header strong { color:var(--orange); }
+    main { max-width:1100px; margin:0 auto; padding:18px; display:grid; gap:16px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; }
+    h2 { margin:0 0 10px; font-size:16px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { text-align:left; padding:8px; border-bottom:1px solid var(--line); }
+    button { background:var(--orange); color:#fff; border:0; border-radius:8px; padding:6px 10px; cursor:pointer; font-weight:700; }
+    button.ghost { background:#fff4eb; color:#e56f18; }
+    .metrics { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; }
+    .m { background:#fff4eb; border-radius:10px; padding:10px; }
+    .m b { display:block; font-size:20px; }
+    code { background:#f1f3f5; padding:2px 6px; border-radius:4px; }
+    a { color:var(--orange); }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>DriveBook</strong> Admin / QA
+    <a href="/book" target="_blank">Open /book</a>
+    <a href="/docs" target="_blank">API docs</a>
+    <button class="ghost" id="reload">Refresh</button>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Stats</h2>
+      <div class="metrics" id="stats"></div>
+    </section>
+    <section class="card">
+      <h2>Recent bookings</h2>
+      <div id="bookings">Loading…</div>
+    </section>
+    <section class="card">
+      <h2>Quick actions</h2>
+      <p>Create test booking on first open slot:</p>
+      <button id="quickBook">Book test student</button>
+      <pre id="log" style="white-space:pre-wrap;font-size:12px;color:#6c757d"></pre>
+    </section>
+  </main>
+  <script>
+    const log = (m) => { document.getElementById('log').textContent = m; };
+    async function api(path, opts) {
+      const r = await fetch(path, opts);
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.detail || r.status);
+      return j;
+    }
+    async function loadStats() {
+      const s = await api('/v1/admin/stats');
+      document.getElementById('stats').innerHTML = `
+        <div class="m"><b>${s.instructors}</b>instructors</div>
+        <div class="m"><b>${s.open_slots}</b>open slots</div>
+        <div class="m"><b>${s.booked_slots}</b>booked slots</div>
+        <div class="m"><b>${s.bookings_total}</b>bookings</div>
+        <div class="m"><b>${s.capacity.weekly_lessons}</b>cap/week</div>
+        <div class="m"><b>${s.traffic_estimate.peak_rps}</b>peak RPS est.</div>
+      `;
+    }
+    async function loadBookings() {
+      const data = await api('/v1/admin/bookings?limit=30');
+      if (!data.items.length) {
+        document.getElementById('bookings').innerHTML = '<p>No bookings yet</p>';
+        return;
+      }
+      document.getElementById('bookings').innerHTML = `
+        <table>
+          <thead><tr><th>ID</th><th>Student</th><th>Instructor</th><th>When</th><th>Source</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            ${data.items.map(b => `
+              <tr>
+                <td>${b.id}</td>
+                <td>${b.student_name}<br><small>${b.student_phone}</small></td>
+                <td>${b.instructor_name}<br><small>${b.district||''}</small></td>
+                <td>${new Date(b.starts_at).toLocaleString()}</td>
+                <td>${b.source}</td>
+                <td>${b.status}/${b.deposit_status}</td>
+                <td>${b.status!=='cancelled'?`<button data-cancel="${b.id}" class="ghost">Cancel</button>`:''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+      document.querySelectorAll('[data-cancel]').forEach(btn => {
+        btn.onclick = async () => {
+          await api('/v1/bookings/' + btn.dataset.cancel + '/cancel', { method:'POST' });
+          loadAll();
+        };
+      });
+    }
+    async function quickBook() {
+      try {
+        const slots = await api('/v1/slots?limit=1');
+        const slot = slots.items[0];
+        if (!slot) throw new Error('No open slots');
+        const res = await api('/v1/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'Idempotency-Key': 'admin-'+Date.now() },
+          body: JSON.stringify({
+            slot_id: slot.id,
+            student_name: 'Admin Test',
+            student_phone: '+37361112233',
+            source: 'admin',
+            lang: 'ro',
+          }),
+        });
+        log(JSON.stringify(res, null, 2));
+        loadAll();
+      } catch (e) {
+        log('ERR ' + e.message);
+      }
+    }
+    async function loadAll() {
+      await loadStats();
+      await loadBookings();
+    }
+    document.getElementById('reload').onclick = loadAll;
+    document.getElementById('quickBook').onclick = quickBook;
+    loadAll();
+  </script>
+</body>
+</html>
