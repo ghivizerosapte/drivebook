@@ -33,7 +33,8 @@ CARS = [
     "Skoda Fabia", "Renault Clio", "Kia Rio", "Seat Ibiza",
 ]
 TX = ["manual", "automatic", "both"]
-HOURS = list(range(8, 21))
+# 90-min lessons + 15-min grace → starts every 2 hours
+HOURS = [8, 10, 12, 14, 16, 18]
 
 
 async def seed(force: bool = False) -> dict:
@@ -90,7 +91,7 @@ async def seed(force: bool = False) -> dict:
                         start = datetime.combine(day, time(h, 0), tzinfo=TZ)
                         if start <= datetime.now(TZ):
                             continue
-                        end = start + timedelta(hours=1)
+                        end = start + timedelta(minutes=90)
                         rows.append((inst_id, start, end, "open"))
 
             await conn.copy_records_to_table(

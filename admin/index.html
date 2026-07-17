@@ -7,26 +7,33 @@
   <style>
     :root { --ink:#2e2e36; --orange:#f9812a; --line:#e9ecef; --bg:#f7f8fa; }
     body { margin:0; font-family: system-ui,sans-serif; background:var(--bg); color:var(--ink); }
-    header { background:#fff; border-bottom:1px solid var(--line); padding:14px 18px; display:flex; gap:16px; align-items:center; }
+    header { background:#fff; border-bottom:1px solid var(--line); padding:14px 18px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
     header strong { color:var(--orange); }
     main { max-width:1100px; margin:0 auto; padding:18px; display:grid; gap:16px; }
     .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; }
     h2 { margin:0 0 10px; font-size:16px; }
     table { width:100%; border-collapse:collapse; font-size:13px; }
-    th,td { text-align:left; padding:8px; border-bottom:1px solid var(--line); }
-    button { background:var(--orange); color:#fff; border:0; border-radius:8px; padding:6px 10px; cursor:pointer; font-weight:700; }
+    th,td { text-align:left; padding:8px; border-bottom:1px solid var(--line); vertical-align:top; }
+    button, .btn { background:var(--orange); color:#fff; border:0; border-radius:8px; padding:6px 10px; cursor:pointer; font-weight:700; text-decoration:none; display:inline-block; }
     button.ghost { background:#fff4eb; color:#e56f18; }
-    .metrics { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; }
+    .metrics { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
     .m { background:#fff4eb; border-radius:10px; padding:10px; }
     .m b { display:block; font-size:20px; }
-    code { background:#f1f3f5; padding:2px 6px; border-radius:4px; }
+    input, select, textarea { border:1px solid var(--line); border-radius:8px; padding:8px; font:inherit; width:100%; box-sizing:border-box; }
+    .row { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:8px; align-items:end; }
+    pre { background:#0f172a; color:#e2e8f0; padding:12px; border-radius:10px; overflow:auto; font-size:12px; max-height:280px; }
     a { color:var(--orange); }
+    .auth { display:flex; gap:8px; align-items:center; }
   </style>
 </head>
 <body>
   <header>
     <strong>DriveBook</strong> Admin / QA
-    <a href="/book" target="_blank">Open /book</a>
+    <div class="auth">
+      <input id="pwd" type="password" placeholder="Admin password" style="width:160px" />
+      <button class="ghost" id="savePwd">Save</button>
+    </div>
+    <a href="/book" target="_blank">/book</a>
     <a href="/docs" target="_blank">API docs</a>
     <button class="ghost" id="reload">Refresh</button>
   </header>
@@ -36,93 +43,137 @@
       <div class="metrics" id="stats"></div>
     </section>
     <section class="card">
+      <h2>API console</h2>
+      <div class="row">
+        <div><label>Method<select id="m"><option>GET</option><option>POST</option></select></label></div>
+        <div style="grid-column:span 2"><label>Path<input id="path" value="/v1/slots/best?limit=3" /></label></div>
+        <button id="send">Send</button>
+      </div>
+      <label style="display:block;margin-top:8px">Body<textarea id="body" rows="3">{}</textarea></label>
+      <pre id="out">// response</pre>
+    </section>
+    <section class="card">
       <h2>Recent bookings</h2>
-      <div id="bookings">Loading…</div>
+      <div id="bookings">Auth required…</div>
+    </section>
+    <section class="card">
+      <h2>Events (24h analytics)</h2>
+      <div id="events"></div>
+    </section>
+    <section class="card">
+      <h2>Waitlist</h2>
+      <div id="waitlist"></div>
     </section>
     <section class="card">
       <h2>Quick actions</h2>
-      <p>Create test booking on first open slot:</p>
-      <button id="quickBook">Book test student</button>
-      <pre id="log" style="white-space:pre-wrap;font-size:12px;color:#6c757d"></pre>
+      <button id="quickBook">Book test student (best slot)</button>
+      <button class="ghost" id="sim">Sim booking +5 min</button>
+      <pre id="log"></pre>
     </section>
   </main>
   <script>
-    const log = (m) => { document.getElementById('log').textContent = m; };
-    async function api(path, opts) {
-      const r = await fetch(path, opts);
+    const pwdEl = document.getElementById('pwd');
+    pwdEl.value = localStorage.getItem('db_admin_pwd') || 'drivebook-admin';
+    document.getElementById('savePwd').onclick = () => {
+      localStorage.setItem('db_admin_pwd', pwdEl.value);
+      loadAll();
+    };
+    const headers = () => ({
+      'Content-Type': 'application/json',
+      'X-Admin-Password': pwdEl.value,
+    });
+    async function api(path, opts={}) {
+      const r = await fetch(path, {
+        ...opts,
+        headers: { ...headers(), ...(opts.headers||{}) },
+      });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.detail || r.status);
+      if (!r.ok) throw new Error(typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail||r.status));
       return j;
     }
     async function loadStats() {
       const s = await api('/v1/admin/stats');
       document.getElementById('stats').innerHTML = `
         <div class="m"><b>${s.instructors}</b>instructors</div>
-        <div class="m"><b>${s.open_slots}</b>open slots</div>
-        <div class="m"><b>${s.booked_slots}</b>booked slots</div>
+        <div class="m"><b>${s.open_slots}</b>open</div>
+        <div class="m"><b>${s.booked_slots}</b>booked</div>
         <div class="m"><b>${s.bookings_total}</b>bookings</div>
-        <div class="m"><b>${s.capacity.weekly_lessons}</b>cap/week</div>
-        <div class="m"><b>${s.traffic_estimate.peak_rps}</b>peak RPS est.</div>
-      `;
+        <div class="m"><b>${s.waitlist_open||0}</b>waitlist</div>
+        <div class="m"><b>${s.events_24h||0}</b>events 24h</div>
+        <div class="m"><b>${s.capacity.visible_slots_est||'—'}</b>vis. slots est</div>
+        <div class="m"><b>${s.traffic_estimate.peak_rps}</b>peak RPS</div>`;
     }
     async function loadBookings() {
-      const data = await api('/v1/admin/bookings?limit=30');
-      if (!data.items.length) {
-        document.getElementById('bookings').innerHTML = '<p>No bookings yet</p>';
-        return;
-      }
-      document.getElementById('bookings').innerHTML = `
-        <table>
-          <thead><tr><th>ID</th><th>Student</th><th>Instructor</th><th>When</th><th>Source</th><th>Status</th><th></th></tr></thead>
-          <tbody>
-            ${data.items.map(b => `
-              <tr>
-                <td>${b.id}</td>
-                <td>${b.student_name}<br><small>${b.student_phone}</small></td>
-                <td>${b.instructor_name}<br><small>${b.district||''}</small></td>
-                <td>${new Date(b.starts_at).toLocaleString()}</td>
-                <td>${b.source}</td>
-                <td>${b.status}/${b.deposit_status}</td>
-                <td>${b.status!=='cancelled'?`<button data-cancel="${b.id}" class="ghost">Cancel</button>`:''}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>`;
-      document.querySelectorAll('[data-cancel]').forEach(btn => {
-        btn.onclick = async () => {
-          await api('/v1/bookings/' + btn.dataset.cancel + '/cancel', { method:'POST' });
-          loadAll();
-        };
+      const data = await api('/v1/admin/bookings?limit=25');
+      document.getElementById('bookings').innerHTML = data.items.length ? `
+        <table><thead><tr><th>ID</th><th>Student</th><th>Instructor</th><th>When</th><th>Channel</th><th>Status</th><th></th></tr></thead>
+        <tbody>${data.items.map(b=>`<tr>
+          <td>${b.id}</td><td>${b.student_name}<br><small>${b.student_phone}</small></td>
+          <td>${b.instructor_name}</td><td>${new Date(b.starts_at).toLocaleString()}</td>
+          <td>${b.channel||b.source}</td><td>${b.status}</td>
+          <td>${b.status!=='cancelled'?`<button data-c="${b.id}" class="ghost">Cancel</button>`:''}</td>
+        </tr>`).join('')}</tbody></table>` : '<p>No bookings</p>';
+      document.querySelectorAll('[data-c]').forEach(btn => {
+        btn.onclick = async () => { await api('/v1/bookings/'+btn.dataset.c+'/cancel',{method:'POST'}); loadAll(); };
       });
     }
-    async function quickBook() {
+    async function loadEvents() {
       try {
-        const slots = await api('/v1/slots?limit=1');
-        const slot = slots.items[0];
-        if (!slot) throw new Error('No open slots');
-        const res = await api('/v1/bookings', {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json', 'Idempotency-Key': 'admin-'+Date.now() },
-          body: JSON.stringify({
-            slot_id: slot.id,
-            student_name: 'Admin Test',
-            student_phone: '+37361112233',
-            source: 'admin',
-            lang: 'ro',
-          }),
-        });
-        log(JSON.stringify(res, null, 2));
-        loadAll();
-      } catch (e) {
-        log('ERR ' + e.message);
-      }
+        const data = await api('/v1/admin/events?limit=20');
+        document.getElementById('events').innerHTML = `<table><thead><tr><th>When</th><th>Type</th><th>Channel</th><th>IP</th></tr></thead>
+          <tbody>${data.items.map(e=>`<tr><td>${new Date(e.created_at).toLocaleString()}</td><td>${e.event_type}</td><td>${e.channel}</td><td>${e.ip||''}</td></tr>`).join('')}</tbody></table>`;
+      } catch(e) { document.getElementById('events').textContent = e.message; }
+    }
+    async function loadWaitlist() {
+      try {
+        const data = await api('/v1/admin/waitlist');
+        document.getElementById('waitlist').innerHTML = data.items.length
+          ? `<table><thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Status</th><th>Source</th></tr></thead>
+             <tbody>${data.items.map(w=>`<tr><td>${w.id}</td><td>${w.student_name}</td><td>${w.student_phone}</td><td>${w.status}</td><td>${w.source}</td></tr>`).join('')}</tbody></table>`
+          : '<p>Empty</p>';
+      } catch(e) { document.getElementById('waitlist').textContent = e.message; }
     }
     async function loadAll() {
-      await loadStats();
-      await loadBookings();
+      try { await loadStats(); await loadBookings(); await loadEvents(); await loadWaitlist(); }
+      catch(e) { document.getElementById('bookings').textContent = 'Auth/error: '+e.message; }
     }
     document.getElementById('reload').onclick = loadAll;
-    document.getElementById('quickBook').onclick = quickBook;
+    document.getElementById('send').onclick = async () => {
+      try {
+        const method = document.getElementById('m').value;
+        const path = document.getElementById('path').value;
+        const body = document.getElementById('body').value;
+        const opts = { method, headers: headers() };
+        if (method === 'POST') {
+          opts.body = body;
+          opts.headers['Idempotency-Key'] = 'admin-console-'+Date.now();
+        }
+        const r = await fetch(path, opts);
+        const text = await r.text();
+        document.getElementById('out').textContent = r.status + '\n' + text;
+      } catch(e) { document.getElementById('out').textContent = e.message; }
+    };
+    document.getElementById('quickBook').onclick = async () => {
+      try {
+        const best = await api('/v1/slots/best?limit=1');
+        const slot = best.items[0];
+        if (!slot) throw new Error('No slots');
+        const res = await api('/v1/bookings', {
+          method:'POST',
+          headers: { ...headers(), 'Idempotency-Key': 'admin-'+Date.now() },
+          body: JSON.stringify({ slot_id: slot.id, student_name:'Admin Test', student_phone:'+37361112233', source:'admin', lang:'ro' }),
+        });
+        document.getElementById('log').textContent = JSON.stringify(res,null,2);
+        loadAll();
+      } catch(e) { document.getElementById('log').textContent = e.message; }
+    };
+    document.getElementById('sim').onclick = async () => {
+      try {
+        const res = await api('/v1/admin/sim/booking?minutes_from_now=5', { method:'POST' });
+        document.getElementById('log').textContent = JSON.stringify(res,null,2);
+        loadAll();
+      } catch(e) { document.getElementById('log').textContent = e.message; }
+    };
     loadAll();
   </script>
 </body>
