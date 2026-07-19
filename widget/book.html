@@ -2,54 +2,28 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DriveBook — programare online · Chișinău</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>DriveBook · Rezervare online · Chișinău</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/widget/widget.css" />
+  <link rel="stylesheet" href="/widget/widget.css?v=3.0" />
   <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background:
-        radial-gradient(900px 400px at 100% 0%, #ffe8d4 0%, transparent 50%),
-        #f7f8fa;
-      font-family: "Titillium Web", system-ui, sans-serif;
-    }
-    .page {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 28px 16px 48px;
-    }
-    .hero-mini {
-      margin-bottom: 16px;
-    }
-    .hero-mini h1 {
-      margin: 0 0 6px;
-      font-size: clamp(28px, 5vw, 40px);
-      color: #2e2e36;
-      letter-spacing: -0.02em;
-    }
-    .hero-mini p { margin: 0; color: #6c757d; }
+    html, body { margin: 0; padding: 0; background: #F5F5F5; }
   </style>
 </head>
 <body>
-  <div class="page">
-    <div class="hero-mini">
-      <h1>Learn to drive · Discover freedom</h1>
-      <p>Chișinău · online booking · RO / RU</p>
-    </div>
-    <div id="app"></div>
-  </div>
-  <script src="/widget/widget.js"></script>
+  <div id="app"></div>
+  <script src="/widget/widget.js?v=3.0"></script>
   <script>
     (function () {
       var params = new URLSearchParams(location.search);
       DriveBookWidget.mount(document.getElementById("app"), {
         apiBase: "",
         source: params.get("source") || "hosted",
-        lang: params.get("lang") || "ro",
-        ensureCssLink: false,
+        lang: params.get("lang") || "ro"
       });
     })();
   </script>
