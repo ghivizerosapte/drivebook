@@ -82,6 +82,8 @@ def _rec(r: asyncpg.Record) -> dict[str, Any]:
             d[k] = v.isoformat()
         elif k == "rating" and v is not None:
             d[k] = float(v)
+        elif k == "details" and isinstance(v, dict):
+            d[k] = v
     return d
 
 
@@ -491,13 +493,6 @@ async def admin_dashboard(_: bool = Depends(require_admin)):
         bookings_total = await conn.fetchval("SELECT COUNT(*) FROM bookings")
         pending = await conn.fetchval("SELECT COUNT(*) FROM hide_requests WHERE status='pending'")
 
-    def _rec(r):
-        d = dict(r)
-        for k, v in list(d.items()):
-            if hasattr(v, "isoformat"):
-                d[k] = v.isoformat()
-        return d
-
     return {
         "stats": {
             "city": settings.city,
@@ -534,14 +529,6 @@ async def get_audit_log(
     return {"items": [_rec(r) for r in rows]}
 
 
-def _rec(r):
-    d = dict(r)
-    for k, v in list(d.items()):
-        if hasattr(v, "isoformat"):
-            d[k] = v.isoformat()
-        elif k == "details" and isinstance(v, dict):
-            d[k] = v
-    return d
 
 
 @router.get("/v1/instructors/{instructor_id}/slots")
