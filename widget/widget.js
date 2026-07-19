@@ -291,7 +291,7 @@
               <div class="db-slot-time" style="font-size:15px;font-weight:500">${t(L, l.key)}</div>
             </button>`).join("")}
         </div>
-        <p class="db-lesson-hint">🎁 ${t(L, "lessonHint")}</p>`;
+        `;
 
       // track which card is selected
       let selectedKey = lessons[0].key;
