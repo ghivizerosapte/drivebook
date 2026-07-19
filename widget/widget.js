@@ -24,7 +24,7 @@
       name: "Nume", phone: "Telefon",
       pickup: "De unde doriți să fiți ridicat?",
       pickupPlaceholder: "Adresă sau reper…",
-      book: "CONTINUĂ",
+      book: "REZERVĂ ACUM",
       continueBtn: "CONTINUĂ",
       again: "PROGRAMARE NOUĂ",
       waitlist: "LISTA DE AȘTEPTARE",
@@ -36,6 +36,11 @@
       instructor: "Instructor",
       zone: "Sector",
       searchPlaceholder: "Caută instructor…",
+      phoneInvalid: "Introduceți un număr de telefon valid (min. 8 cifre).",
+      termsLabel: "Am citit și accept ",
+      termsLink: "termenii și condițiile",
+      termsRequired: "Trebuie să acceptați termenii pentru a continua.",
+      termsText: "Rezervarea online constituie o confirmare a intenției dvs. de a participa la lecție. Școala de șoferi poate anula sau reprograma lecția cu o notificare prealabilă de cel puțin 2 ore. Plata se efectuează direct instructorului. Anularea gratuită este posibilă cu cel puțin 24 de ore înainte de lecție. Datele dvs. personale (nume, telefon) sunt prelucrate exclusiv în scopul organizării cursului, în conformitate cu Legea nr. 133/2011 privind protecția datelor cu caracter personal a Republicii Moldova, și nu vor fi transmise terților fără consimțământul dvs.",
       districts: {
         "Botanica": "Botanica", "Centru": "Centru",
         "Buiucani": "Buiucani", "Rîșcani": "Rîșcani", "Ciocana": "Ciocana",
@@ -59,7 +64,7 @@
       name: "Имя", phone: "Телефон",
       pickup: "Откуда вас удобнее забрать?",
       pickupPlaceholder: "Адрес или ориентир…",
-      book: "ПРОДОЛЖИТЬ",
+      book: "ЗАПИСАТЬСЯ",
       continueBtn: "ПРОДОЛЖИТЬ",
       again: "НОВАЯ ЗАПИСЬ",
       waitlist: "ЛИСТ ОЖИДАНИЯ",
@@ -71,6 +76,11 @@
       instructor: "Инструктор",
       zone: "Район",
       searchPlaceholder: "Поиск инструктора…",
+      phoneInvalid: "Введите корректный номер телефона (мин. 8 цифр).",
+      termsLabel: "Я прочитал и принимаю ",
+      termsLink: "условия и положения",
+      termsRequired: "Необходимо принять условия для продолжения.",
+      termsText: "Онлайн-бронирование является подтверждением вашего намерения посетить занятие. Автошкола вправе отменить или перенести занятие с уведомлением не менее чем за 2 часа. Оплата производится напрямую инструктору. Бесплатная отмена возможна не менее чем за 24 часа до занятия. Ваши персональные данные (имя, телефон) обрабатываются исключительно в целях организации курса, в соответствии с Законом № 133/2011 о защите персональных данных Республики Молдова, и не будут переданы третьим лицам без вашего согласия.",
       districts: {
         "Botanica": "Ботаника", "Centru": "Центр",
         "Buiucani": "Буюканы", "Rîșcani": "Рышкановка", "Ciocana": "Чеканы",
@@ -146,8 +156,15 @@
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const msg = typeof data.detail === "string"
-        ? data.detail : data.detail?.message || `HTTP ${res.status}`;
+      let msg;
+      if (typeof data.detail === "string") {
+        msg = data.detail;
+      } else if (Array.isArray(data.detail) && data.detail.length) {
+        // Pydantic validation errors: [{loc, msg, type}, ...]
+        msg = data.detail[0].msg || `HTTP ${res.status}`;
+      } else {
+        msg = data.detail?.message || `HTTP ${res.status}`;
+      }
       const err = new Error(msg);
       err.status = res.status;
       throw err;
@@ -628,6 +645,7 @@
           <div class="db-field">
             <label for="db-phone">${t(L, "phone")}</label>
             <input id="db-phone" name="student_phone" required type="tel"
+              inputmode="numeric" pattern="[+]?[0-9 \\-\\(\\)]{8,20}"
               placeholder="+373" autocomplete="tel" />
           </div>
           <div class="db-field">
@@ -635,19 +653,50 @@
             <input id="db-pickup" name="pickup" placeholder="${t(L, "pickupPlaceholder")}"
               autocomplete="street-address" />
           </div>
+          <div class="db-field db-field-terms">
+            <div class="db-terms-body" data-terms-body style="display:none">
+              ${t(L, "termsText")}
+            </div>
+            <label class="db-terms-label">
+              <input type="checkbox" name="terms" data-terms />
+              <span>${t(L, "termsLabel")}<a href="#" class="db-terms-link" data-terms-toggle>${t(L, "termsLink")}</a></span>
+            </label>
+          </div>
           <div data-err></div>
         </form>`;
 
-      // Foot CTA submits the form
-      foot.innerHTML = `<button class="db-btn-primary" type="button" data-submit>${t(L, "book")}</button>`;
-      foot.querySelector("[data-submit]").onclick = async () => {
+      // Terms toggle
+      body.querySelector("[data-terms-toggle]").addEventListener("click", e => {
+        e.preventDefault();
+        const box = body.querySelector("[data-terms-body]");
+        box.style.display = box.style.display === "none" ? "block" : "none";
+      });
+
+      // Foot CTA: disabled until T&C checked
+      foot.innerHTML = `<button class="db-btn-primary" type="button" data-submit disabled>${t(L, "book")}</button>`;
+      const submitBtn = foot.querySelector("[data-submit]");
+
+      body.querySelector("[data-terms]").addEventListener("change", e => {
+        submitBtn.disabled = !e.target.checked;
+      });
+
+      submitBtn.onclick = async () => {
         const form = body.querySelector("[data-form]");
-        if (!form.reportValidity()) return;
-        const fd   = new FormData(form);
-        const btn  = foot.querySelector("[data-submit]");
         const errEl = body.querySelector("[data-err]");
-        btn.disabled = true;
         errEl.innerHTML = "";
+
+        // Front-end phone validation (numeric + length)
+        const phoneVal = form.querySelector("[name=student_phone]").value.trim();
+        const phoneDigits = phoneVal.replace(/[^\d]/g, "");
+        if (phoneDigits.length < 8) {
+          errEl.innerHTML = `<div class="db-error">${t(L, "phoneInvalid")}</div>`;
+          return;
+        }
+
+        if (!form.reportValidity()) return;
+
+        const fd = new FormData(form);
+        submitBtn.disabled = true;
         try {
           const res = await api(base, "/v1/bookings", {
             method: "POST",
@@ -658,7 +707,7 @@
             body: JSON.stringify({
               slot_id: s.id,
               student_name: fd.get("student_name"),
-              student_phone: fd.get("student_phone"),
+              student_phone: phoneVal,
               notes: fd.get("pickup") || null,
               lesson_type: state.lessonType,
               source: state.source,
@@ -668,7 +717,7 @@
           renderDone(res.booking, fd.get("student_name"));
         } catch (e) {
           errEl.innerHTML = `<div class="db-error">${e.message}</div>`;
-          btn.disabled = false;
+          submitBtn.disabled = false;
         }
       };
     }

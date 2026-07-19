@@ -426,6 +426,56 @@
 .db-field input:focus, .db-field textarea:focus { border-color: var(--c-orange); }
 .db-field textarea { resize: none; }
 
+/* ── Terms & Conditions block ───────────────────────────────── */
+.db-field-terms { gap: 8px; }
+.db-terms-body {
+  font-size: 12px;
+  color: var(--c-muted);
+  line-height: 1.5;
+  background: var(--c-bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--c-line);
+}
+.db-terms-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--c-ink);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  cursor: pointer;
+}
+.db-terms-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border: 1.5px solid var(--c-line);
+  border-radius: 4px;
+  background: var(--c-card);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  margin-top: 1px;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.db-terms-label input[type="checkbox"]:checked {
+  background: var(--c-orange);
+  border-color: var(--c-orange);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 11px;
+}
+.db-terms-link {
+  color: var(--c-orange);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ── Summary card (above contact form) ─────────────────── */
 .db-summary {
   background: var(--c-card);
