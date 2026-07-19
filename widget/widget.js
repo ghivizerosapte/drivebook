@@ -1,68 +1,130 @@
 /**
- * DriveBook v2 widget — auto-best primary, instructor calendar secondary.
- * BSM-like 3–4 screens: best slots → (optional instructor calendar) → contacts → done.
- * No deposit UI. Chișinău only. RO/RU/EN.
+ * DriveBook Widget v3.0 — BSM Mobile Edition
+ * Chișinău only · RO/RU · Shadow DOM embed
  */
 (function (global) {
+
+  // ── i18n ────────────────────────────────────────────────────────────────
   const STR = {
     ro: {
-      brand: "DriveBook", city: "Chișinău",
-      titleBest: "Cel mai apropiat slot liber",
-      titlePick: "Sau alege instructorul",
-      titleCal: "Calendar",
+      back: "Înapoi", exit: "Ieșire",
+      gearbox: "Cutie de viteze",
+      manual: "Manuală", automatic: "Automată",
+      changeInstructor: "SCHIMBĂ INSTRUCTORUL",
+      titleBest: "Cele mai apropiate 3 locuri libere",
+      titlePick: "Alege instructorul",
+      titleSlots: "Alege ora",
       titleContact: "Confirmă rezervarea",
       titleDone: "Ești programat!",
-      any: "Oricare", manual: "Manuală", automatic: "Automată",
-      zone: "Sector (opțional)", search: "Caută instructor",
-      book: "Rezervă", name: "Nume", phone: "Telefon",
-      email: "Email (opțional)", again: "Programare nouă",
-      empty: "Nimic liber — stai în listă de așteptare",
-      waitlist: "Vreau pe listă de așteptare", loading: "Se încarcă…",
-      free: "liber", busy: "ocupat", pickSlot: "Alege",
-      badge: "programare online", best: "Recomandat", all: "Toți instructorii",
-      notes: "Comentariu",
+      name: "Nume", phone: "Telefon",
+      book: "CONTINUĂ",
+      continueBtn: "CONTINUĂ",
+      again: "PROGRAMARE NOUĂ",
+      waitlist: "LISTA DE AȘTEPTARE",
+      loading: "Se încarcă…",
+      empty: "Nicio oră disponibilă",
+      noSlots: "Nu sunt locuri libere în această zi",
+      allInstructors: "TOȚI INSTRUCTORII",
+      lessonDetails: "Detalii lecție",
+      instructor: "Instructor",
+      zone: "Sector",
+      searchPlaceholder: "Caută instructor…",
+      districts: {
+        "Botanica": "Botanica", "Centru": "Centru",
+        "Buiucani": "Buiucani", "Rîșcani": "Rîșcani", "Ciocana": "Ciocana",
+      },
     },
     ru: {
-      brand: "DriveBook", city: "Кишинёв",
-      titleBest: "Ближайший свободный слот",
-      titlePick: "Или выберите инструктора",
-      titleCal: "Календарь",
-      titleContact: "Подтвердите запись",
+      back: "Назад", exit: "Выход",
+      gearbox: "Коробка передач",
+      manual: "Механика", automatic: "Автомат",
+      changeInstructor: "СМЕНИТЬ ИНСТРУКТОРА",
+      titleBest: "3 ближайших свободных места",
+      titlePick: "Выбери инструктора",
+      titleSlots: "Выбери время",
+      titleContact: "Подтверди запись",
       titleDone: "Вы записаны!",
-      any: "Любая", manual: "Механика", automatic: "Автомат",
-      zone: "Район (необязательно)", search: "Поиск инструктора",
-      book: "Записаться", name: "Имя", phone: "Телефон",
-      email: "Email (необязательно)", again: "Новая запись",
-      empty: "Нет мест — встаньте в лист ожидания",
-      waitlist: "В лист ожидания", loading: "Загрузка…",
-      free: "свободно", busy: "занято", pickSlot: "Выбрать",
-      badge: "онлайн-запись", best: "Рекомендуем", all: "Все инструкторы",
-      notes: "Комментарий",
-    },
-    en: {
-      brand: "DriveBook", city: "Chișinău",
-      titleBest: "Nearest open slot",
-      titlePick: "Or pick an instructor",
-      titleCal: "Calendar",
-      titleContact: "Confirm booking",
-      titleDone: "You're booked!",
-      any: "Any", manual: "Manual", automatic: "Automatic",
-      zone: "District (optional)", search: "Search instructor",
-      book: "Book lesson", name: "Name", phone: "Phone",
-      email: "Email (optional)", again: "New booking",
-      empty: "Nothing free — join waitlist",
-      waitlist: "Join waitlist", loading: "Loading…",
-      free: "free", busy: "busy", pickSlot: "Pick",
-      badge: "online booking", best: "Recommended", all: "All instructors",
-      notes: "Notes",
+      name: "Имя", phone: "Телефон",
+      book: "ПРОДОЛЖИТЬ",
+      continueBtn: "ПРОДОЛЖИТЬ",
+      again: "НОВАЯ ЗАПИСЬ",
+      waitlist: "ЛИСТ ОЖИДАНИЯ",
+      loading: "Загрузка…",
+      empty: "Нет свободных мест",
+      noSlots: "Нет мест в этот день",
+      allInstructors: "ВСЕ ИНСТРУКТОРЫ",
+      lessonDetails: "Детали урока",
+      instructor: "Инструктор",
+      zone: "Район",
+      searchPlaceholder: "Поиск инструктора…",
+      districts: {
+        "Botanica": "Ботаника", "Centru": "Центр",
+        "Buiucani": "Буюканы", "Rîșcani": "Рышкановка", "Ciocana": "Чеканы",
+      },
     },
   };
-  const t = (lang, key) => (STR[lang] || STR.ro)[key] || STR.ro[key] || key;
-  const fmt = (iso, lang) =>
-    new Date(iso).toLocaleString(lang === "ru" ? "ru-RU" : lang === "en" ? "en-GB" : "ro-RO", {
-      weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-    });
+  const t = (lang, key) => (STR[lang] || STR.ro)[key] ?? STR.ro[key] ?? key;
+  const dist = (lang, d) => (STR[lang]?.districts || STR.ro.districts)[d] || d;
 
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  const AVATAR_COLORS = [
+    "#F07C00","#E05A3A","#3A8FBF","#5B7FA6","#6B8E5E","#8B5E8E","#5E8E7A",
+  ];
+  function avatarColor(name) {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return AVATAR_COLORS[h % AVATAR_COLORS.length];
+  }
+  function initials(name) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }
+  function avatar(name, small) {
+    const cls = small ? "db-avatar db-avatar-sm" : "db-avatar";
+    return `<span class="${cls}" style="background:${avatarColor(name)}">${initials(name)}</span>`;
+  }
+
+  // Drop last slot of each calendar day (req #1)
+  function filterLastSlot(slots) {
+    const byDay = {};
+    for (const s of slots) {
+      const day = s.starts_at.slice(0, 10);
+      if (!byDay[day]) byDay[day] = [];
+      byDay[day].push(s);
+    }
+    const kept = new Set();
+    for (const day of Object.keys(byDay)) {
+      const sorted = byDay[day].slice().sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+      sorted.slice(0, -1).forEach(s => kept.add(s.id));
+    }
+    return slots.filter(s => kept.has(s.id));
+  }
+
+  // Format time range: "09:30 — 11:00"
+  function fmtTime(starts, ends, lang) {
+    const loc = lang === "ru" ? "ru-RU" : "ro-RO";
+    const hm = d => new Date(d).toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" });
+    const end = ends || new Date(new Date(starts).getTime() + 90 * 60000).toISOString();
+    return `${hm(starts)} — ${hm(end)}`;
+  }
+
+  // Format full date label: "Vin, 25 Iun"
+  function fmtDate(iso, lang) {
+    const loc = lang === "ru" ? "ru-RU" : "ro-RO";
+    return new Date(iso).toLocaleDateString(loc, { weekday: "short", day: "numeric", month: "short" });
+  }
+
+  // Day key "2026-07-25"
+  const dayKey = iso => iso.slice(0, 10);
+
+  // Clock SVG icon
+  const CLOCK_SVG = `<svg class="db-slot-icon" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+  </svg>`;
+
+  // ── API ──────────────────────────────────────────────────────────────────
   async function api(base, path, opts) {
     const res = await fetch(base + path, {
       headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -70,356 +132,556 @@
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const d = data.detail;
-      const msg = typeof d === "string" ? d : d?.message || `HTTP ${res.status}`;
+      const msg = typeof data.detail === "string"
+        ? data.detail : data.detail?.message || `HTTP ${res.status}`;
       const err = new Error(msg);
-      err.detail = d;
       err.status = res.status;
       throw err;
     }
     return data;
   }
 
+  // ── Mount ────────────────────────────────────────────────────────────────
   function mount(root, options) {
     const opts = options || {};
     const base = opts.apiBase || "";
+
     const state = {
       lang: opts.lang || "ro",
       source: opts.source || "widget",
-      view: "best", // best | instructors | calendar | contact | done
-      transmission: "",
-      zone: "",
-      instructor: null,
-      slot: null,
-      meta: null,
-      alternatives: null,
+      transmission: "",        // "" | "manual" | "automatic"
+      instructor: null,        // selected instructor object
+      slot: null,              // selected slot object
+      fromInstructor: false,   // true when path: pick instructor → slot → contact
+      calDays: [],             // sorted day keys for the slot picker
+      calDayIdx: 0,            // first visible day index in scroller
+      calSlots: {},            // { dayKey: [slot, …] }
+      changeOpen: false,       // "change instructor" dropdown open
+      altInstructors: [],      // fetched list for change dropdown
     };
 
+    // ── Shell ──────────────────────────────────────────────────────────────
     root.innerHTML = `
-      <div class="db-root"><div class="db-shell">
-        <div class="db-top">
-          <div class="db-brand"><span>Drive</span>Book · <small data-city></small></div>
-          <div class="db-badge" data-badge></div>
+      <div class="db-root">
+        <div class="db-shell">
+          <div class="db-progress" data-progress></div>
+          <div class="db-nav">
+            <button class="db-nav-back" data-back type="button">← <span data-back-label></span></button>
+            <div class="db-nav-lang">
+              <button type="button" data-lang="ro">RO</button>
+              <button type="button" data-lang="ru">RU</button>
+            </div>
+            <button class="db-nav-exit" data-exit type="button">✕</button>
+          </div>
+          <div class="db-body" data-body></div>
+          <div class="db-foot-cta" data-foot></div>
         </div>
-        <div class="db-lang">
-          <button type="button" data-lang="ro">RO</button>
-          <button type="button" data-lang="ru">RU</button>
-          <button type="button" data-lang="en">EN</button>
-        </div>
-        <div class="db-body" data-body></div>
-        <div class="db-foot">Chișinău · no deposit · multi-channel</div>
-      </div></div>`;
+      </div>`;
 
-    const body = root.querySelector("[data-body]");
-    const $ = (s) => root.querySelector(s);
+    const body   = root.querySelector("[data-body]");
+    const foot   = root.querySelector("[data-foot]");
+    const prog   = root.querySelector("[data-progress]");
+    const $      = s => root.querySelector(s);
 
-    function applyChrome() {
-      $("[data-city]").textContent = t(state.lang, "city");
-      $("[data-badge]").textContent = t(state.lang, "badge");
-      root.querySelectorAll("[data-lang]").forEach((b) => {
+    // ── Chrome helpers ─────────────────────────────────────────────────────
+    function setProgress(step) {         // step 1-5
+      prog.innerHTML = Array.from({ length: 5 }, (_, i) =>
+        `<div class="db-progress-seg ${i < step ? "on" : ""}"></div>`
+      ).join("");
+    }
+
+    function setNav(backFn, showBack) {
+      const backBtn   = $("[data-back]");
+      const backLabel = $("[data-back-label]");
+      backLabel.textContent = t(state.lang, "back");
+      backBtn.style.visibility = showBack ? "visible" : "hidden";
+      backBtn.onclick = backFn || null;
+    }
+
+    function setFootCta(label, onClick, disabled) {
+      foot.innerHTML = `<button class="db-btn-primary" type="button">${label}</button>`;
+      const btn = foot.querySelector("button");
+      if (disabled) btn.disabled = true;
+      btn.onclick = onClick;
+    }
+
+    function clearFoot() { foot.innerHTML = ""; }
+
+    function applyLang() {
+      root.querySelectorAll("[data-lang]").forEach(b => {
         b.classList.toggle("active", b.dataset.lang === state.lang);
+      });
+      $("[data-back-label]").textContent = t(state.lang, "back");
+      $("[data-exit]").title = t(state.lang, "exit");
+    }
+
+    root.querySelectorAll("[data-lang]").forEach(b => {
+      b.onclick = () => { state.lang = b.dataset.lang; applyLang(); rerender(); };
+    });
+
+    $("[data-exit]").onclick = () => { state.slot = null; state.instructor = null; renderBest(); };
+
+    let currentView = "best";
+    function rerender() {
+      if (currentView === "best")        renderBest();
+      else if (currentView === "inst")   renderInstructors();
+      else if (currentView === "slots")  renderSlotPicker();
+      else if (currentView === "contact") renderContact();
+    }
+
+    // ── Gearbox tabs ──────────────────────────────────────────────────────
+    function gearboxTabs() {
+      const L = state.lang;
+      return `
+        <p class="db-tab-label">${t(L, "gearbox")}</p>
+        <div class="db-tabs">
+          <button class="db-tab ${state.transmission === "" ? "active" : ""}"
+            type="button" data-tx="">Toate</button>
+          <button class="db-tab ${state.transmission === "manual" ? "active" : ""}"
+            type="button" data-tx="manual">${t(L, "manual")}</button>
+          <button class="db-tab ${state.transmission === "automatic" ? "active" : ""}"
+            type="button" data-tx="automatic">${t(L, "automatic")}</button>
+        </div>`;
+    }
+
+    function bindTabs() {
+      body.querySelectorAll("[data-tx]").forEach(btn => {
+        btn.onclick = () => {
+          state.transmission = btn.dataset.tx;
+          rerender();
+        };
       });
     }
 
-    function track(event_type, payload) {
-      api(base, "/v1/events", {
-        method: "POST",
-        body: JSON.stringify({ event_type, channel: state.source, payload }),
-      }).catch(() => {});
-    }
-
+    // ── VIEW: Best (start screen, 3 closest slots) ─────────────────────────
     async function renderBest() {
-      state.view = "best";
+      currentView = "best";
       const L = state.lang;
+      setProgress(1);
+      setNav(null, false);
       body.innerHTML = `
-        <h1>${t(L, "titleBest")}</h1>
-        <p class="db-lead">${t(L, "city")} · 90 min</p>
-        <div class="db-filters">
-          <select data-tx>
-            <option value="">${t(L, "any")}</option>
-            <option value="manual">${t(L, "manual")}</option>
-            <option value="automatic">${t(L, "automatic")}</option>
-          </select>
-          <input data-zone type="text" placeholder="${t(L, "zone")}" value="${state.zone}" />
-        </div>
-        <div data-list class="db-grid"><div class="db-empty">${t(L, "loading")}</div></div>
-        <p style="margin-top:14px"><button type="button" class="db-btn ghost" data-all>${t(L, "all")}</button></p>`;
-      body.querySelector("[data-tx]").value = state.transmission;
-      body.querySelector("[data-tx]").onchange = (e) => {
-        state.transmission = e.target.value;
-        loadBest();
-      };
-      body.querySelector("[data-zone]").onchange = (e) => {
-        state.zone = e.target.value.trim();
-        loadBest();
-      };
-      body.querySelector("[data-all]").onclick = () => renderInstructors();
-      await loadBest();
-    }
+        ${gearboxTabs()}
+        <p class="db-title">${t(L, "titleBest")}</p>
+        <div class="db-slot-list" data-list>
+          <div class="db-loading">${t(L, "loading")}</div>
+        </div>`;
+      bindTabs();
 
-    async function loadBest() {
-      const L = state.lang;
       const list = body.querySelector("[data-list]");
-      if (!list) return;
-      list.innerHTML = `<div class="db-empty">${t(L, "loading")}</div>`;
-      const p = new URLSearchParams({ limit: "8" });
-      if (state.transmission) p.set("transmission", state.transmission);
-      if (state.zone) p.set("zone", state.zone);
-      if (state.lang) p.set("language", state.lang);
       try {
+        // fetch extra, filter last-of-day, take 3 soonest
+        const p = new URLSearchParams({ limit: "10" });
+        if (state.transmission) p.set("transmission", state.transmission);
         const data = await api(base, `/v1/slots/best?${p}`);
-        track("slot_viewed", { mode: "best", count: data.items.length });
-        if (!data.items.length) {
-          list.innerHTML = `<div class="db-empty">${t(L, "empty")}<br>
-            <button class="db-btn primary" style="margin-top:10px" data-wl type="button">${t(L, "waitlist")}</button></div>`;
-          list.querySelector("[data-wl]").onclick = () => joinWaitlist();
+        const items = filterLastSlot(data.items).slice(0, 3);
+        if (!items.length) {
+          list.innerHTML = `<div class="db-empty-state">${t(L, "empty")}</div>`;
+          foot.innerHTML = `<button class="db-btn-ghost" type="button" data-all>${t(L, "allInstructors")}</button>`;
+          foot.querySelector("[data-all]").onclick = () => renderInstructors();
           return;
         }
-        list.innerHTML = data.items
-          .map(
-            (s, i) => `
-          <button class="db-card" data-sid="${s.id}" data-iid="${s.instructor_id}">
-            ${i === 0 ? `<div class="db-pills"><span class="db-pill">${t(L, "best")}</span></div>` : ""}
-            <h3>${fmt(s.starts_at, L)}</h3>
-            <p>${s.instructor_name} · ${s.district} · ${s.car}</p>
-            <div class="db-pills"><span class="db-pill">${Number(s.rating).toFixed(1)}★</span>
-            <span class="db-pill">${s.transmission}</span></div>
-          </button>`
-          )
-          .join("");
-        list.querySelectorAll("[data-sid]").forEach((btn) => {
+        list.innerHTML = items.map(s => `
+          <button class="db-slot-row" type="button" data-sid="${s.id}">
+            ${CLOCK_SVG}
+            <div>
+              <div class="db-slot-time">${fmtTime(s.starts_at, s.ends_at, L)}</div>
+              <div class="db-slot-sub">${fmtDate(s.starts_at, L)} · ${s.instructor_name} · ${dist(L, s.district)}</div>
+            </div>
+          </button>`).join("");
+
+        list.querySelectorAll("[data-sid]").forEach(btn => {
           btn.onclick = () => {
-            const item = data.items.find((x) => x.id === Number(btn.dataset.sid));
+            const item = items.find(x => x.id === Number(btn.dataset.sid));
             state.slot = item;
-            state.instructor = {
-              id: item.instructor_id,
-              name: item.instructor_name,
-              district: item.district,
-              car: item.car,
-            };
+            state.instructor = { id: item.instructor_id, name: item.instructor_name, district: item.district };
+            state.fromInstructor = false;
             renderContact();
           };
         });
+
+        // secondary CTA in footer
+        foot.innerHTML = `<button class="db-btn-ghost" type="button" data-all>${t(L, "allInstructors")}</button>`;
+        foot.querySelector("[data-all]").onclick = () => renderInstructors();
+
       } catch (e) {
-        list.innerHTML = `<div class="db-empty">${e.message}</div>`;
+        list.innerHTML = `<div class="db-error">${e.message}</div>`;
       }
     }
 
+    // ── VIEW: Instructor picker ────────────────────────────────────────────
     async function renderInstructors() {
-      state.view = "instructors";
+      currentView = "inst";
       const L = state.lang;
+      setProgress(2);
+      setNav(() => renderBest(), true);
+      clearFoot();
+
       body.innerHTML = `
-        <h1>${t(L, "titlePick")}</h1>
-        <div class="db-filters"><input data-q type="search" placeholder="${t(L, "search")}" /></div>
-        <div data-list class="db-grid"><div class="db-empty">${t(L, "loading")}</div></div>
-        <p><button type="button" class="db-btn ghost" data-back>${t(L, "best")}</button></p>`;
-      body.querySelector("[data-back]").onclick = () => renderBest();
-      const q = body.querySelector("[data-q]");
+        ${gearboxTabs()}
+        <p class="db-title">${t(L, "titlePick")}</p>
+        <input class="db-search" type="search" placeholder="${t(L, "searchPlaceholder")}" data-q />
+        <div class="db-inst-list" data-list>
+          <div class="db-loading">${t(L, "loading")}</div>
+        </div>`;
+      bindTabs();
+
+      const list = body.querySelector("[data-list]");
+      const qInput = body.querySelector("[data-q]");
       let timer;
-      q.oninput = () => {
-        clearTimeout(timer);
-        timer = setTimeout(loadInst, 250);
-      };
-      async function loadInst() {
-        const list = body.querySelector("[data-list]");
+      qInput.oninput = () => { clearTimeout(timer); timer = setTimeout(load, 220); };
+
+      async function load() {
+        list.innerHTML = `<div class="db-loading">${t(L, "loading")}</div>`;
         const p = new URLSearchParams({ limit: "30" });
-        if (q.value.trim()) p.set("q", q.value.trim());
+        if (qInput.value.trim()) p.set("q", qInput.value.trim());
         if (state.transmission) p.set("transmission", state.transmission);
-        if (state.zone) p.set("zone", state.zone);
         try {
           const data = await api(base, `/v1/instructors?${p}`);
-          list.innerHTML = data.items
-            .map(
-              (i) => `
-            <button class="db-card" data-id="${i.id}">
-              <h3>${i.name} · ${Number(i.rating).toFixed(1)}★</h3>
-              <p>${i.district} · ${i.car} · ${i.transmission}</p>
-            </button>`
-            )
-            .join("") || `<div class="db-empty">${t(L, "empty")}</div>`;
-          list.querySelectorAll("[data-id]").forEach((btn) => {
+          if (!data.items.length) {
+            list.innerHTML = `<div class="db-empty-state">${t(L, "empty")}</div>`;
+            return;
+          }
+          list.innerHTML = data.items.map(i => `
+            <button class="db-inst-row" type="button" data-id="${i.id}">
+              ${avatar(i.name)}
+              <div>
+                <div class="db-inst-name">${i.name}</div>
+                <div class="db-inst-meta">${dist(L, i.district)} · ${i.car} · ${Number(i.rating).toFixed(1)}★</div>
+              </div>
+            </button>`).join("");
+          list.querySelectorAll("[data-id]").forEach(btn => {
             btn.onclick = () => {
-              state.instructor = data.items.find((x) => x.id === Number(btn.dataset.id));
-              renderCalendar();
+              state.instructor = data.items.find(x => x.id === Number(btn.dataset.id));
+              state.fromInstructor = true;
+              renderSlotPicker();
             };
           });
         } catch (e) {
-          list.innerHTML = `<div class="db-empty">${e.message}</div>`;
+          list.innerHTML = `<div class="db-error">${e.message}</div>`;
         }
       }
-      await loadInst();
+      await load();
     }
 
-    async function renderCalendar() {
-      state.view = "calendar";
+    // ── VIEW: Slot picker (instructor calendar) ────────────────────────────
+    async function renderSlotPicker() {
+      currentView = "slots";
       const L = state.lang;
+      setProgress(3);
+      setNav(() => renderInstructors(), true);
+      clearFoot();
+
       body.innerHTML = `
-        <h1>${t(L, "titleCal")}</h1>
-        <p class="db-lead">${state.instructor.name} · ${state.instructor.district}</p>
-        <div data-cal class="db-grid"><div class="db-empty">${t(L, "loading")}</div></div>
-        <p><button type="button" class="db-btn ghost" data-back>${t(L, "all")}</button></p>`;
-      body.querySelector("[data-back]").onclick = () => renderInstructors();
+        <div class="db-instructor-row">
+          ${avatar(state.instructor.name)}
+          <div>
+            <div class="db-instructor-name">${state.instructor.name}</div>
+            <div class="db-instructor-sub">${dist(L, state.instructor.district || "")}</div>
+          </div>
+        </div>
+        <button class="db-change-link" type="button" data-change>
+          ⇄ ${t(L, "changeInstructor")}
+        </button>
+        <div data-change-list style="display:none"></div>
+        <p class="db-title">${t(L, "titleSlots")}</p>
+        <div data-cal>
+          <div class="db-loading">${t(L, "loading")}</div>
+        </div>`;
+
+      // "Change instructor" toggle
+      body.querySelector("[data-change]").onclick = async () => {
+        const drawer = body.querySelector("[data-change-list]");
+        state.changeOpen = !state.changeOpen;
+        drawer.style.display = state.changeOpen ? "block" : "none";
+        if (state.changeOpen && !state.altInstructors.length) {
+          drawer.innerHTML = `<div class="db-loading">${t(L, "loading")}</div>`;
+          try {
+            const p = new URLSearchParams({ limit: "10" });
+            if (state.transmission) p.set("transmission", state.transmission);
+            const data = await api(base, `/v1/instructors?${p}`);
+            state.altInstructors = data.items.filter(i => i.id !== state.instructor.id).slice(0, 6);
+          } catch (_) { state.altInstructors = []; }
+        }
+        if (state.changeOpen) {
+          drawer.innerHTML = `<div class="db-change-list">
+            ${state.altInstructors.map(i => `
+              <button class="db-change-item" type="button" data-iid="${i.id}">
+                ${avatar(i.name, true)}
+                <span>${i.name}</span>
+              </button>`).join("")}
+          </div>`;
+          drawer.querySelectorAll("[data-iid]").forEach(btn => {
+            btn.onclick = () => {
+              state.instructor = state.altInstructors.find(x => x.id === Number(btn.dataset.iid));
+              state.altInstructors = [];
+              state.changeOpen = false;
+              renderSlotPicker();
+            };
+          });
+        }
+      };
+
+      // Load calendar
+      const calEl = body.querySelector("[data-cal]");
       try {
         const cal = await api(base, `/v1/instructors/${state.instructor.id}/calendar`);
-        track("slot_viewed", { mode: "calendar", instructor_id: state.instructor.id });
-        const days = Object.keys(cal.days || {}).sort();
-        if (!days.length) {
-          body.querySelector("[data-cal]").innerHTML = `<div class="db-empty">${t(L, "empty")}<br>
-            <button class="db-btn primary" data-wl type="button">${t(L, "waitlist")}</button></div>`;
-          body.querySelector("[data-wl]").onclick = () => joinWaitlist(state.instructor.id);
+        const rawDays = Object.keys(cal.days || {}).sort();
+        if (!rawDays.length) {
+          calEl.innerHTML = `<div class="db-empty-state">${t(L, "empty")}</div>`;
+          foot.innerHTML = `<button class="db-btn-ghost" type="button" data-wl>${t(L, "waitlist")}</button>`;
+          foot.querySelector("[data-wl]").onclick = () => joinWaitlist(state.instructor.id);
           return;
         }
-        body.querySelector("[data-cal]").innerHTML = days
-          .map((day) => {
-            const slots = cal.days[day];
-            return `<div class="db-card" style="cursor:default">
-              <h3>${day}</h3>
-              <div class="db-slots" style="margin-top:8px">
-                ${slots
-                  .map(
-                    (s) =>
-                      s.free
-                        ? `<button class="db-slot" data-id="${s.id}"><strong>${fmt(s.starts_at, L)}</strong><span>${t(L, "free")}</span></button>`
-                        : `<button class="db-slot" disabled style="opacity:.45"><strong>${fmt(s.starts_at, L)}</strong><span>${t(L, "busy")}</span></button>`
-                  )
-                  .join("")}
-              </div></div>`;
-          })
-          .join("");
-        body.querySelectorAll("[data-id]").forEach((btn) => {
-          btn.onclick = async () => {
-            const slots = await api(base, `/v1/slots?instructor_id=${state.instructor.id}&limit=100`);
-            state.slot = slots.items.find((x) => x.id === Number(btn.dataset.id));
-            if (state.slot) renderContact();
-          };
-        });
+
+        // Filter: drop last slot per day, rebuild days
+        state.calSlots = {};
+        for (const day of rawDays) {
+          const free = cal.days[day].filter(s => s.free);
+          const kept = filterLastSlot(free);
+          if (kept.length) state.calSlots[day] = kept;
+        }
+        state.calDays = Object.keys(state.calSlots).sort();
+        if (!state.calDays.length) {
+          calEl.innerHTML = `<div class="db-empty-state">${t(L, "empty")}</div>`;
+          return;
+        }
+        state.calDayIdx = 0;
+        renderDateScroller(calEl, L);
       } catch (e) {
-        body.querySelector("[data-cal]").innerHTML = `<div class="db-empty">${e.message}</div>`;
+        calEl.innerHTML = `<div class="db-error">${e.message}</div>`;
       }
     }
 
+    function renderDateScroller(calEl, L) {
+      const days  = state.calDays;
+      const idx   = state.calDayIdx;
+      const vis   = days.slice(idx, idx + 3);   // 3 visible day cards
+      const selDay = vis[0];                     // first visible = selected day
+
+      const dayCard = (day, active) => {
+        const d = new Date(day + "T12:00:00");
+        const dow = d.toLocaleDateString(L === "ru" ? "ru-RU" : "ro-RO", { weekday: "short" }).toUpperCase().replace(".", "");
+        const num = d.getDate();
+        const mon = d.toLocaleDateString(L === "ru" ? "ru-RU" : "ro-RO", { month: "short" }).toUpperCase().replace(".", "");
+        return `<button class="db-date-card${active ? " active" : ""}" type="button" data-day="${day}">
+          <span class="db-date-dow">${dow}</span>
+          <span class="db-date-day">${num}</span>
+          <span class="db-date-mon">${mon}</span>
+        </button>`;
+      };
+
+      calEl.innerHTML = `
+        <div class="db-date-nav">
+          <button class="db-date-arrow" type="button" data-prev ${idx === 0 ? "disabled" : ""}>‹</button>
+          <div class="db-date-scroll">
+            ${vis.map((d, i) => dayCard(d, i === 0)).join("")}
+          </div>
+          <button class="db-date-arrow" type="button" data-next ${idx + 3 >= days.length ? "disabled" : ""}>›</button>
+        </div>
+        <div class="db-slot-list" data-slots></div>`;
+
+      calEl.querySelector("[data-prev]")?.addEventListener("click", () => {
+        state.calDayIdx = Math.max(0, idx - 3);
+        renderDateScroller(calEl, L);
+      });
+      calEl.querySelector("[data-next]")?.addEventListener("click", () => {
+        state.calDayIdx = Math.min(days.length - 1, idx + 3);
+        renderDateScroller(calEl, L);
+      });
+
+      calEl.querySelectorAll("[data-day]").forEach((btn, i) => {
+        btn.onclick = () => {
+          state.calDayIdx = days.indexOf(btn.dataset.day);
+          renderDateScroller(calEl, L);
+        };
+      });
+
+      renderDaySlots(calEl.querySelector("[data-slots]"), selDay, L);
+
+      // Footer CTA disabled until slot selected
+      setFootCta(t(L, "continueBtn"), () => {
+        if (state.slot) renderContact();
+      }, !state.slot);
+    }
+
+    function renderDaySlots(slotsEl, day, L) {
+      const slots = state.calSlots[day] || [];
+      if (!slots.length) {
+        slotsEl.innerHTML = `<div class="db-empty-state">${t(L, "noSlots")}</div>`;
+        return;
+      }
+      slotsEl.innerHTML = slots.map(s => {
+        const active = state.slot?.id === s.id;
+        return `<button class="db-slot-row${active ? " active" : ""}" type="button" data-slotid="${s.id}">
+          ${CLOCK_SVG}
+          <div>
+            <div class="db-slot-time">${fmtTime(s.starts_at, s.ends_at, L)}</div>
+          </div>
+        </button>`;
+      }).join("");
+
+      slotsEl.querySelectorAll("[data-slotid]").forEach(btn => {
+        btn.onclick = () => {
+          const s = slots.find(x => x.id === Number(btn.dataset.slotid));
+          state.slot = s;
+          slotsEl.querySelectorAll(".db-slot-row").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          // enable continue
+          const ctaBtn = foot.querySelector("button");
+          if (ctaBtn) ctaBtn.disabled = false;
+        };
+      });
+    }
+
+    // ── VIEW: Contact form ─────────────────────────────────────────────────
     function renderContact() {
-      state.view = "contact";
+      currentView = "contact";
       const L = state.lang;
+      setProgress(4);
+      setNav(() => state.fromInstructor ? renderSlotPicker() : renderBest(), true);
+      clearFoot();
+
+      const s = state.slot;
+      const inst = state.instructor;
+
       body.innerHTML = `
-        <h1>${t(L, "titleContact")}</h1>
-        <p class="db-lead">${state.instructor.name}<br>${fmt(state.slot.starts_at, L)}</p>
+        <p class="db-title">${t(L, "titleContact")}</p>
+        <div class="db-summary">
+          <div class="db-summary-row">
+            ${CLOCK_SVG}
+            <div>
+              <div>${fmtTime(s.starts_at, s.ends_at, L)}</div>
+              <div class="db-summary-label">${fmtDate(s.starts_at, L)}</div>
+            </div>
+          </div>
+          <div class="db-summary-row">
+            ${avatar(inst.name, true)}
+            <div>
+              <div>${inst.name}</div>
+              <div class="db-summary-label">${dist(L, inst.district || "")}</div>
+            </div>
+          </div>
+        </div>
         <form class="db-form" data-form>
-          <label>${t(L, "name")}<input name="student_name" required minlength="2" /></label>
-          <label>${t(L, "phone")}<input name="student_phone" required placeholder="+373" /></label>
-          <label>${t(L, "email")}<input name="student_email" type="email" /></label>
-          <label>${t(L, "notes")}<textarea name="notes" rows="2"></textarea></label>
-          <button class="db-btn primary" type="submit">${t(L, "book")}</button>
-        </form>
-        <div data-alts></div>`;
-      body.querySelector("[data-form]").onsubmit = async (ev) => {
-        ev.preventDefault();
-        const fd = new FormData(ev.target);
-        const btn = ev.target.querySelector("button");
+          <div class="db-field">
+            <label for="db-name">${t(L, "name")}</label>
+            <input id="db-name" name="student_name" required minlength="2" autocomplete="name" />
+          </div>
+          <div class="db-field">
+            <label for="db-phone">${t(L, "phone")}</label>
+            <input id="db-phone" name="student_phone" required type="tel"
+              placeholder="+373" autocomplete="tel" />
+          </div>
+          <div data-err></div>
+        </form>`;
+
+      // Foot CTA submits the form
+      foot.innerHTML = `<button class="db-btn-primary" type="button" data-submit>${t(L, "book")}</button>`;
+      foot.querySelector("[data-submit]").onclick = async () => {
+        const form = body.querySelector("[data-form]");
+        if (!form.reportValidity()) return;
+        const fd   = new FormData(form);
+        const btn  = foot.querySelector("[data-submit]");
+        const errEl = body.querySelector("[data-err]");
         btn.disabled = true;
+        errEl.innerHTML = "";
         try {
           const res = await api(base, "/v1/bookings", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Idempotency-Key": `w-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              "Idempotency-Key": `w-${Date.now()}-${Math.random().toString(36).slice(2)}`,
             },
             body: JSON.stringify({
-              slot_id: state.slot.id,
+              slot_id: s.id,
               student_name: fd.get("student_name"),
               student_phone: fd.get("student_phone"),
-              student_email: fd.get("student_email") || null,
-              notes: fd.get("notes") || null,
               source: state.source,
               lang: state.lang,
             }),
           });
-          renderDone(res.booking);
+          renderDone(res.booking, fd.get("student_name"));
         } catch (e) {
-          if (e.status === 409 && e.detail?.alternatives?.length) {
-            const alts = e.detail.alternatives;
-            body.querySelector("[data-alts]").innerHTML = `
-              <p class="db-lead">${e.message}</p>
-              <div class="db-grid">${alts
-                .map(
-                  (a) =>
-                    `<button class="db-card" data-alt="${a.slot_id}">
-                      <h3>${fmt(a.starts_at, L)}</h3>
-                      <p>${a.instructor_name} · ${a.district}</p>
-                    </button>`
-                )
-                .join("")}</div>`;
-            body.querySelectorAll("[data-alt]").forEach((b) => {
-              b.onclick = () => {
-                state.slot = { id: Number(b.dataset.alt), starts_at: alts.find((x) => x.slot_id === Number(b.dataset.alt)).starts_at };
-                state.instructor = {
-                  name: alts.find((x) => x.slot_id === Number(b.dataset.alt)).instructor_name,
-                  district: alts.find((x) => x.slot_id === Number(b.dataset.alt)).district,
-                };
-                renderContact();
-              };
-            });
-          } else alert(e.message);
-        } finally {
+          errEl.innerHTML = `<div class="db-error">${e.message}</div>`;
           btn.disabled = false;
         }
       };
     }
 
-    function renderDone(b) {
-      state.view = "done";
+    // ── VIEW: Done / Congratulations ───────────────────────────────────────
+    function renderDone(b, studentName) {
+      currentView = "done";
       const L = state.lang;
+      setProgress(5);
+      setNav(null, false);
+
+      const firstName = (studentName || b.student_name || "").split(" ")[0];
+      const d = new Date(b.starts_at);
+      const dayNum = d.getDate();
+
       body.innerHTML = `
-        <div class="db-success">
-          <div class="db-check">✓</div>
-          <h1>${t(L, "titleDone")}</h1>
-          <p>#${b.id}<br>${b.instructor_name}<br>${fmt(b.starts_at, L)}</p>
-          <button class="db-btn ghost" data-again type="button">${t(L, "again")}</button>
+        <div class="db-congrats-wrap">
+          <div class="db-congrats-illus">🎉</div>
+          <div class="db-congrats-title">
+            ${L === "ru" ? "Поздравляем" : "Felicitări"} ${firstName}!<br>
+            ${t(L, "titleDone")}
+          </div>
+          <div class="db-congrats-sub">#${b.id}</div>
+        </div>
+        <div class="db-details-card">
+          <div class="db-details-title">${t(L, "lessonDetails")}</div>
+          <div class="db-details-row">
+            <span class="db-avatar db-avatar-sm" style="background:${AVATAR_COLORS[2]};font-size:13px;font-weight:700">${dayNum}</span>
+            <div class="db-details-row-text">
+              <span class="db-details-main">${fmtTime(b.starts_at, b.ends_at, L)}</span>
+              <span class="db-details-sub">${fmtDate(b.starts_at, L)}</span>
+            </div>
+          </div>
+          <div class="db-details-row">
+            ${avatar(b.instructor_name || state.instructor?.name || "–", true)}
+            <div class="db-details-row-text">
+              <span class="db-details-main">${b.instructor_name || state.instructor?.name || "–"}</span>
+              <span class="db-details-sub">${t(L, "instructor")}</span>
+            </div>
+          </div>
+          <div class="db-details-row">
+            <span class="db-avatar db-avatar-sm" style="background:#888">📍</span>
+            <div class="db-details-row-text">
+              <span class="db-details-main">${dist(L, b.district || state.instructor?.district || "")}</span>
+              <span class="db-details-sub">${t(L, "zone")}</span>
+            </div>
+          </div>
         </div>`;
-      body.querySelector("[data-again]").onclick = () => {
-        state.slot = null;
-        state.instructor = null;
+
+      foot.innerHTML = `<button class="db-btn-ghost" type="button" data-again>${t(L, "again")}</button>`;
+      foot.querySelector("[data-again]").onclick = () => {
+        state.slot = null; state.instructor = null;
+        state.fromInstructor = false; state.changeOpen = false;
+        state.altInstructors = []; state.calDays = []; state.calSlots = {};
         renderBest();
       };
     }
 
+    // ── Waitlist (prompt fallback) ─────────────────────────────────────────
     async function joinWaitlist(instructorId) {
-      const name = prompt(t(state.lang, "name"));
+      const name  = prompt(t(state.lang, "name"));
       const phone = prompt(t(state.lang, "phone"));
       if (!name || !phone) return;
       try {
         await api(base, "/v1/waitlist", {
           method: "POST",
           body: JSON.stringify({
-            student_name: name,
-            student_phone: phone,
+            student_name: name, student_phone: phone,
             instructor_id: instructorId || null,
-            zone: state.zone || null,
-            lang: state.lang,
-            source: state.source,
+            lang: state.lang, source: state.source,
           }),
         });
-        alert("OK · waitlist");
-      } catch (e) {
-        alert(e.message);
-      }
+      } catch (_) {}
     }
 
-    root.querySelectorAll("[data-lang]").forEach((b) => {
-      b.onclick = () => {
-        state.lang = b.dataset.lang;
-        applyChrome();
-        if (state.view === "best") renderBest();
-        else if (state.view === "instructors") renderInstructors();
-        else if (state.view === "calendar") renderCalendar();
-        else if (state.view === "contact") renderContact();
-      };
-    });
-
-    applyChrome();
-    api(base, "/v1/meta").then((m) => { state.meta = m; }).catch(() => {});
+    // ── Boot ───────────────────────────────────────────────────────────────
+    applyLang();
     renderBest();
-    return { state };
   }
 
   global.DriveBookWidget = { mount };
