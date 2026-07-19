@@ -75,7 +75,7 @@ class EventIn(BaseModel):
     slot_id: Optional[int] = None
 
 
-def _row(r: asyncpg.Record) -> dict[str, Any]:
+def _rec(r: asyncpg.Record) -> dict[str, Any]:
     d = dict(r)
     for k, v in list(d.items()):
         if hasattr(v, "isoformat"):
@@ -99,6 +99,40 @@ async def require_admin(
     if credentials and secrets.compare_digest(credentials.password, expected):
         return True
     raise HTTPException(401, "Admin auth required", headers={"WWW-Authenticate": "Basic"})
+
+
+async def require_supervisor(
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+    credentials: Optional[HTTPBasicCredentials] = Depends(security),
+):
+    """Require supervisor or admin role, checked against the users table."""
+    pool = await get_pool()
+
+    # Bearer token path (session-based auth)
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+    if token:
+        async with pool.acquire() as conn:
+            user = await svc.validate_session(conn, token)
+        if not user:
+            raise HTTPException(401, "Invalid or expired token")
+        if user["role"] not in ("supervisor", "admin"):
+            raise HTTPException(403, "Supervisor or admin role required")
+        return user
+
+    # Basic Auth path — validate credentials against users table
+    if credentials:
+        async with pool.acquire() as conn:
+            user = await svc.authenticate_user(conn, credentials.username, credentials.password)
+        if not user:
+            raise HTTPException(401, "Invalid credentials", headers={"WWW-Authenticate": "Basic"})
+        if user["role"] not in ("supervisor", "admin"):
+            raise HTTPException(403, "Supervisor or admin role required")
+        return user
+
+    raise HTTPException(401, "Authentication required", headers={"WWW-Authenticate": "Bearer"})
 
 
 @router.get("/health")
@@ -126,6 +160,8 @@ async def meta():
         "default_lang": "ro",
         "slot_minutes": int(school["slot_minutes"]) if school else 90,
         "grace_minutes": int(school["grace_minutes"]) if school else 15,
+        "day_start": "07:00",
+        "day_end": "21:00",
         "deposit_required": bool(school["deposit_required"]) if school else False,
         "deposit_amount_cents": int(school["deposit_amount_cents"]) if school else 0,
         "lesson_types": [
@@ -176,7 +212,7 @@ async def list_instructors(
             limit,
             offset,
         )
-    return {"total": total, "city": settings.city, "items": [_row(r) for r in rows]}
+    return {"total": total, "city": settings.city, "items": [_rec(r) for r in rows]}
 
 
 @router.get("/v1/instructors/{instructor_id}")
@@ -192,7 +228,7 @@ async def get_instructor(instructor_id: int):
         )
     if not row:
         raise HTTPException(404, "Instructor not found")
-    return _row(row)
+    return _rec(row)
 
 
 @router.get("/v1/instructors/{instructor_id}/calendar")
@@ -200,6 +236,7 @@ async def calendar(
     instructor_id: int,
     date_from: Optional[str] = Query(None, alias="from"),
     date_to: Optional[str] = Query(None, alias="to"),
+    include_hidden: bool = Query(False, description="Admin/instructor: show hidden slots"),
 ):
     now = datetime.now(TZ)
     start = datetime.fromisoformat(date_from) if date_from else now
@@ -213,7 +250,298 @@ async def calendar(
         inst = await conn.fetchval("SELECT id FROM instructors WHERE id=$1 AND active", instructor_id)
         if not inst:
             raise HTTPException(404, "Instructor not found")
-        return await svc.instructor_calendar(conn, instructor_id, start, end)
+        return await svc.instructor_calendar(
+            conn, instructor_id, start, end, include_hidden=include_hidden
+        )
+
+
+@router.post("/v1/auth/login")
+async def auth_login(
+    request: Request,
+    payload: "AuthLoginIn",
+):
+    """Authenticate user and return session token."""
+    ip = await _client_ip(request)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        user = await svc.authenticate_user(conn, payload.username, payload.password)
+    if not user:
+        raise HTTPException(401, "Invalid credentials")
+    async with pool.acquire() as conn:
+        token = await svc.create_session(conn, user["id"], ip=ip)
+        await svc.emit_audit(conn, user["id"], "login", details={"ip": ip})
+    return {
+        "ok": True,
+        "token": token,
+        "user": {"id": user["id"], "username": user["username"], "role": user["role"], "instructor_id": user["instructor_id"]},
+    }
+
+
+class AuthLoginIn(BaseModel):
+    username: str = Field(min_length=2, max_length=64)
+    password: str = Field(min_length=1, max_length=128)
+
+
+class AuthLogoutIn(BaseModel):
+    token: str
+
+
+@router.post("/v1/auth/logout")
+async def auth_logout(payload: AuthLogoutIn):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await svc.revoke_session(conn, payload.token)
+    return {"ok": True}
+
+
+@router.post("/v1/auth/verify")
+async def auth_verify(
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+):
+    """Verify session token. Returns user info."""
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+    if not token:
+        raise HTTPException(401, "Missing token")
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        session = await svc.validate_session(conn, token)
+    if not session:
+        raise HTTPException(401, "Invalid or expired token")
+    return {"ok": True, "user": session}
+
+
+class HideSlotsIn(BaseModel):
+    """Hide or show slots for an instructor (drivers hide times they won't work)."""
+    is_hidden: bool = True
+    slot_ids: Optional[list[int]] = None
+    # hide all slots starting at/after this local time, e.g. "18:00"
+    hide_starts_from: Optional[str] = None
+    # optional date range filter
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+    # reason for hiding (required for instructor requests)
+    reason: Optional[str] = Field(default=None, max_length=500)
+
+
+@router.patch("/v1/instructors/{instructor_id}/slots/visibility")
+async def set_slot_visibility(
+    instructor_id: int,
+    payload: HideSlotsIn,
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+):
+    """
+    Authenticated: instructor requests hide with reason (→ moderation).
+    Admin/supervisor can apply directly.
+    """
+    ip = await _client_ip(request)
+    # extract token
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        user = None
+        if token:
+            user = await svc.validate_session(conn, token)
+        inst = await conn.fetchval("SELECT id FROM instructors WHERE id=$1", instructor_id)
+        if not inst:
+            raise HTTPException(404, "Instructor not found")
+
+        if not user:
+            raise HTTPException(401, "Authentication required")
+
+        # Instructor requests → moderation queue
+        if user["role"] == "instructor" and user["instructor_id"] != instructor_id:
+            raise HTTPException(403, "Can only modify own slots")
+
+        is_instructor = user["role"] == "instructor"
+
+        if is_instructor:
+            # Create hide request (pending moderation)
+            if not payload.reason:
+                raise HTTPException(400, "Instructor must provide a reason for hiding slots")
+            scope = payload.model_dump(exclude={"reason"}, exclude_none=True)
+            req_id = await svc.submit_hide_request(conn, instructor_id, payload.reason, scope)
+            await svc.emit_audit(conn, user["id"], "hide_request",
+                                 target_type="instructor", target_id=instructor_id,
+                                 details={"reason": payload.reason, "scope": scope, "request_id": req_id, "ip": ip})
+            return {"ok": True, "request_id": req_id, "status": "pending", "message": "Request submitted for admin review"}
+
+        # Admin/supervisor: apply directly
+        if payload.slot_ids:
+            result = await conn.execute(
+                "UPDATE slots SET is_hidden = $1 WHERE instructor_id = $2 AND id = ANY($3::bigint[])",
+                payload.is_hidden, instructor_id, payload.slot_ids,
+            )
+        elif payload.hide_starts_from:
+            hh, mm = payload.hide_starts_from.split(":")
+            hour, minute = int(hh), int(mm)
+            clauses = ["instructor_id = $1",
+                       "(EXTRACT(HOUR FROM starts_at AT TIME ZONE 'Europe/Chisinau') * 60 + EXTRACT(MINUTE FROM starts_at AT TIME ZONE 'Europe/Chisinau')) >= $2"]
+            params: list[Any] = [instructor_id, hour * 60 + minute]
+            if payload.date_from:
+                params.append(payload.date_from)
+                clauses.append(f"starts_at >= ${len(params)}")
+            if payload.date_to:
+                params.append(payload.date_to)
+                clauses.append(f"starts_at <= ${len(params)}")
+            params.append(payload.is_hidden)
+            result = await conn.execute(
+                f"UPDATE slots SET is_hidden = ${len(params)} WHERE {' AND '.join(clauses)}",
+                *params,
+            )
+        else:
+            raise HTTPException(400, "Provide slot_ids or hide_starts_from (e.g. '18:00')")
+
+        svc.invalidate_slot_caches(instructor_id)
+        n = int(result.split()[-1]) if result else 0
+        await svc.emit_audit(conn, user["id"], "hide_apply" if not payload.is_hidden else "hide_revoke",
+                             target_type="instructor", target_id=instructor_id,
+                             details={"updated": n, "is_hidden": payload.is_hidden, "ip": ip})
+        return {"ok": True, "updated": n, "is_hidden": payload.is_hidden}
+
+
+@router.get("/v1/admin/moderation")
+async def get_moderation_queue(_: bool = Depends(require_admin)):
+    """Admin: pending hide requests with reasons."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        items = await svc.get_pending_hide_requests(conn)
+        unread = await svc.count_unread_notifications(conn)
+    return {"items": items, "unread": unread}
+
+
+@router.post("/v1/admin/moderation/{request_id}/resolve")
+async def resolve_hide_request(
+    request_id: int,
+    action: str = Query(..., description="'accept' or 'reject'"),
+    _: bool = Depends(require_admin),
+    request: Request = None,
+):
+    """Admin: accept or reject a hide request."""
+    if action not in ("accept", "reject"):
+        raise HTTPException(400, "action must be 'accept' or 'reject'")
+    # get admin user from basic auth header
+    admin_id = None
+    ip = await _client_ip(request)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        ok = await svc.resolve_hide_request(conn, request_id, action, admin_id or 1)
+        await svc.emit_audit(conn, admin_id or 1, "hide_accept" if action == "accept" else "hide_reject",
+                             target_type="hide_request", target_id=request_id,
+                             details={"action": action, "ip": ip})
+    if not ok:
+        raise HTTPException(404, "Request not found or already resolved")
+    return {"ok": True, "action": action}
+
+
+@router.get("/v1/admin/notifications")
+async def get_notifications(_: bool = Depends(require_admin)):
+    """Admin: unread notification count."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        unread = await svc.count_unread_notifications(conn)
+    return {"unread": unread}
+
+
+@router.get("/v1/admin/dashboard")
+async def admin_dashboard(_: bool = Depends(require_admin)):
+    """Admin: slot loads, active bookings, instructor info."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        # slots loaded by district and hour
+        slot_load = await conn.fetch(
+            """
+            SELECT date_trunc('hour', s.starts_at AT TIME ZONE 'Europe/Chisinau') AS hour,
+                   i.district,
+                   COUNT(*) AS total,
+                   SUM(CASE WHEN s.status = 'booked' THEN 1 ELSE 0 END) AS booked,
+                   SUM(CASE WHEN s.status = 'open' AND COALESCE(s.is_hidden, FALSE) = FALSE THEN 1 ELSE 0 END) AS open_visible
+            FROM slots s
+            JOIN instructors i ON i.id = s.instructor_id
+            WHERE s.starts_at >= now() - interval '7 days'
+              AND s.starts_at < now() + interval '7 days'
+            GROUP BY hour, i.district
+            ORDER BY hour, i.district
+            """
+        )
+        # top booked instructors this week
+        top_instructors = await conn.fetch(
+            """
+            SELECT i.id, i.name, i.district, COUNT(b.id) AS bookings
+            FROM instructors i
+            JOIN slots s ON s.instructor_id = i.id
+            JOIN bookings b ON b.slot_id = s.id
+            WHERE s.starts_at >= now() - interval '7 days'
+              AND b.status = 'confirmed'
+            GROUP BY i.id, i.name, i.district
+            ORDER BY bookings DESC
+            LIMIT 20
+            """
+        )
+        # stats
+        instructors = await conn.fetchval("SELECT COUNT(*) FROM instructors WHERE active")
+        open_slots = await conn.fetchval("SELECT COUNT(*) FROM slots WHERE status='open' AND COALESCE(is_hidden, FALSE) = FALSE")
+        booked = await conn.fetchval("SELECT COUNT(*) FROM slots WHERE status='booked'")
+        bookings_total = await conn.fetchval("SELECT COUNT(*) FROM bookings")
+        pending = await conn.fetchval("SELECT COUNT(*) FROM hide_requests WHERE status='pending'")
+
+    def _rec(r):
+        d = dict(r)
+        for k, v in list(d.items()):
+            if hasattr(v, "isoformat"):
+                d[k] = v.isoformat()
+        return d
+
+    return {
+        "stats": {
+            "city": settings.city,
+            "instructors": instructors,
+            "open_slots": open_slots,
+            "booked_slots": booked,
+            "bookings_total": bookings_total,
+            "pending_hide_requests": pending,
+        },
+        "slot_load": [_rec(r) for r in slot_load],
+        "top_instructors": [_rec(r) for r in top_instructors],
+    }
+
+
+@router.get("/v1/admin/audit-log")
+async def get_audit_log(
+    limit: int = Query(100, ge=1, le=500),
+    user_id: Optional[int] = None,
+    _=Depends(require_supervisor),
+):
+    """Audit log — supervisor and admin only."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        if user_id:
+            rows = await conn.fetch(
+                "SELECT * FROM audit_log WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2",
+                user_id, limit,
+            )
+        else:
+            rows = await conn.fetch(
+                "SELECT * FROM audit_log ORDER BY created_at DESC LIMIT $1",
+                limit,
+            )
+    return {"items": [_rec(r) for r in rows]}
+
+
+def _rec(r):
+    d = dict(r)
+    for k, v in list(d.items()):
+        if hasattr(v, "isoformat"):
+            d[k] = v.isoformat()
+        elif k == "details" and isinstance(v, dict):
+            d[k] = v
+    return d
 
 
 @router.get("/v1/instructors/{instructor_id}/slots")
@@ -222,8 +550,15 @@ async def instructor_slots(
     date_from: Optional[str] = Query(None, alias="from"),
     date_to: Optional[str] = Query(None, alias="to"),
     limit: int = Query(100, ge=1, le=300),
+    include_hidden: bool = False,
 ):
-    return await list_slots(instructor_id=instructor_id, date_from=date_from, date_to=date_to, limit=limit)
+    return await list_slots(
+        instructor_id=instructor_id,
+        date_from=date_from,
+        date_to=date_to,
+        limit=limit,
+        include_hidden=include_hidden,
+    )
 
 
 @router.get("/v1/slots")
@@ -232,11 +567,16 @@ async def list_slots(
     date_from: Optional[str] = Query(None, alias="from"),
     date_to: Optional[str] = Query(None, alias="to"),
     limit: int = Query(100, ge=1, le=300),
+    include_hidden: bool = False,
 ):
+    """Public booking: hidden slots excluded. Admin may pass include_hidden=true."""
     pool = await get_pool()
     now = datetime.now(TZ)
-    clauses = ["s.status = 'open'", "s.starts_at >= $1", "i.active = TRUE"]
+    clauses = ["s.starts_at >= $1", "i.active = TRUE"]
     params: list[Any] = [now]
+    if not include_hidden:
+        clauses.append("s.status = 'open'")
+        clauses.append("COALESCE(s.is_hidden, FALSE) = FALSE")
     if instructor_id:
         params.append(instructor_id)
         clauses.append(f"s.instructor_id = ${len(params)}")
@@ -252,6 +592,7 @@ async def list_slots(
         rows = await conn.fetch(
             f"""
             SELECT s.id, s.instructor_id, s.starts_at, s.ends_at, s.status,
+                   COALESCE(s.is_hidden, FALSE) AS is_hidden,
                    i.name AS instructor_name, i.district, i.car, i.transmission, i.rating
             FROM slots s JOIN instructors i ON i.id = s.instructor_id
             WHERE {where}
@@ -260,7 +601,75 @@ async def list_slots(
             """,
             *params,
         )
-    return {"items": [_row(r) for r in rows]}
+    items = []
+    for r in rows:
+        d = _rec(r)
+        try:
+            s = datetime.fromisoformat(d["starts_at"])
+            e = datetime.fromisoformat(d["ends_at"])
+            d["starts_label"] = s.astimezone(TZ).strftime("%H:%M")
+            d["ends_label"] = e.astimezone(TZ).strftime("%H:%M")
+            d["label"] = f"{d['starts_label']}–{d['ends_label']}"
+        except Exception:
+            pass
+        items.append(d)
+    return {"items": items}
+
+
+class HideSlotsIn(BaseModel):
+    """Hide or show slots for an instructor (drivers hide times they won't work)."""
+    is_hidden: bool = True
+    slot_ids: Optional[list[int]] = None
+    # hide all slots starting at/after this local time, e.g. "18:00"
+    hide_starts_from: Optional[str] = None
+    # optional date range filter
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+
+
+@router.patch("/v1/instructors/{instructor_id}/slots/visibility")
+async def set_slot_visibility(instructor_id: int, payload: HideSlotsIn):
+    """Instructor: hide/unhide own slots. Admin can call same endpoint."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        inst = await conn.fetchval("SELECT id FROM instructors WHERE id=$1", instructor_id)
+        if not inst:
+            raise HTTPException(404, "Instructor not found")
+
+        if payload.slot_ids:
+            result = await conn.execute(
+                """
+                UPDATE slots SET is_hidden = $1
+                WHERE instructor_id = $2 AND id = ANY($3::bigint[])
+                """,
+                payload.is_hidden,
+                instructor_id,
+                payload.slot_ids,
+            )
+        elif payload.hide_starts_from:
+            # hide by local wall-clock time on starts_at
+            hh, mm = payload.hide_starts_from.split(":")
+            hour, minute = int(hh), int(mm)
+            clauses = ["instructor_id = $1", "(EXTRACT(HOUR FROM starts_at AT TIME ZONE 'Europe/Chisinau') * 60 + EXTRACT(MINUTE FROM starts_at AT TIME ZONE 'Europe/Chisinau')) >= $2"]
+            params: list[Any] = [instructor_id, hour * 60 + minute]
+            if payload.date_from:
+                params.append(payload.date_from)
+                clauses.append(f"starts_at >= ${len(params)}")
+            if payload.date_to:
+                params.append(payload.date_to)
+                clauses.append(f"starts_at <= ${len(params)}")
+            params.append(payload.is_hidden)
+            result = await conn.execute(
+                f"UPDATE slots SET is_hidden = ${len(params)} WHERE {' AND '.join(clauses)}",
+                *params,
+            )
+        else:
+            raise HTTPException(400, "Provide slot_ids or hide_starts_from (e.g. '18:00')")
+
+        svc.invalidate_slot_caches(instructor_id)
+        # "UPDATE 3" -> 3
+        n = int(result.split()[-1]) if result else 0
+        return {"ok": True, "updated": n, "is_hidden": payload.is_hidden}
 
 
 @router.get("/v1/slots/best")
@@ -290,7 +699,7 @@ async def _fetch_booking(conn: asyncpg.Connection, booking_id: int) -> Optional[
         """,
         booking_id,
     )
-    return _row(row) if row else None
+    return _rec(row) if row else None
 
 
 @router.post("/v1/bookings")
@@ -328,15 +737,21 @@ async def create_booking(
                     """
                     UPDATE slots SET status = 'booked'
                     WHERE id = $1 AND status = 'open' AND starts_at > now()
+                      AND COALESCE(is_hidden, FALSE) = FALSE
                     RETURNING id, starts_at, instructor_id
                     """,
                     payload.slot_id,
                 )
                 if not claimed:
                     alts = await svc.alternatives(conn, payload.slot_id)
-                    slot = await conn.fetchrow("SELECT id, status FROM slots WHERE id=$1", payload.slot_id)
+                    slot = await conn.fetchrow(
+                        "SELECT id, status, COALESCE(is_hidden,FALSE) AS is_hidden FROM slots WHERE id=$1",
+                        payload.slot_id,
+                    )
                     if not slot:
                         raise HTTPException(404, "Slot not found")
+                    if slot["is_hidden"]:
+                        raise HTTPException(409, detail={"message": "Slot hidden by instructor", "alternatives": alts})
                     raise HTTPException(
                         status_code=409,
                         detail={"message": "Slot already taken", "alternatives": alts},
@@ -548,7 +963,7 @@ async def admin_bookings(limit: int = Query(50, ge=1, le=200), _: bool = Depends
             """,
             limit,
         )
-    return {"items": [_row(r) for r in rows]}
+    return {"items": [_rec(r) for r in rows]}
 
 
 @router.get("/v1/admin/stats")
@@ -594,7 +1009,7 @@ async def admin_events(limit: int = Query(50, ge=1, le=200), _: bool = Depends(r
             "FROM events ORDER BY created_at DESC LIMIT $1",
             limit,
         )
-    return {"items": [_row(r) for r in rows]}
+    return {"items": [_rec(r) for r in rows]}
 
 
 @router.get("/v1/admin/waitlist")
@@ -604,7 +1019,7 @@ async def admin_waitlist(_: bool = Depends(require_admin)):
         rows = await conn.fetch(
             "SELECT * FROM waitlist ORDER BY created_at DESC LIMIT 100"
         )
-    return {"items": [_row(r) for r in rows]}
+    return {"items": [_rec(r) for r in rows]}
 
 
 @router.post("/v1/admin/sim/booking")
