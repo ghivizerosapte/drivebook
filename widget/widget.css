@@ -567,6 +567,16 @@
   border-radius: var(--r-card);
 }
 
+/* ── Lesson type hint line ──────────────────────────────── */
+.db-lesson-hint {
+  font-size: 13px;
+  color: var(--c-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+}
+
 /* ── Error / alert inline ───────────────────────────────── */
 .db-error {
   background: #FFF0F0;

@@ -11,12 +11,19 @@
       gearbox: "Cutie de viteze",
       manual: "Manuală", automatic: "Automată",
       changeInstructor: "SCHIMBĂ INSTRUCTORUL",
+      lessonTypeQ: "Ce tip de lecție dorești?",
+      lesson1: "Vreau să învăț să conduc",
+      lesson2: "Lecții de perfecționare / reîmprospătare",
+      lesson3: "Am examenul în curând (max. 14 zile)",
+      lessonHint: "Poți opta pentru cadou mai târziu.",
       titleBest: "Cele mai apropiate 3 locuri libere",
       titlePick: "Alege instructorul",
       titleSlots: "Alege ora",
       titleContact: "Confirmă rezervarea",
       titleDone: "Ești programat!",
       name: "Nume", phone: "Telefon",
+      pickup: "De unde doriți să fiți ridicat?",
+      pickupPlaceholder: "Adresă sau reper…",
       book: "CONTINUĂ",
       continueBtn: "CONTINUĂ",
       again: "PROGRAMARE NOUĂ",
@@ -39,12 +46,19 @@
       gearbox: "Коробка передач",
       manual: "Механика", automatic: "Автомат",
       changeInstructor: "СМЕНИТЬ ИНСТРУКТОРА",
+      lessonTypeQ: "Какой урок вас интересует?",
+      lesson1: "Хочу научиться водить",
+      lesson2: "Уроки совершенствования / повторения",
+      lesson3: "У меня экзамен в ближайшее время (до 14 дней)",
+      lessonHint: "Подарочный вариант можно выбрать позже.",
       titleBest: "3 ближайших свободных места",
       titlePick: "Выбери инструктора",
       titleSlots: "Выбери время",
       titleContact: "Подтверди запись",
       titleDone: "Вы записаны!",
       name: "Имя", phone: "Телефон",
+      pickup: "Откуда вас удобнее забрать?",
+      pickupPlaceholder: "Адрес или ориентир…",
       book: "ПРОДОЛЖИТЬ",
       continueBtn: "ПРОДОЛЖИТЬ",
       again: "НОВАЯ ЗАПИСЬ",
@@ -149,6 +163,7 @@
     const state = {
       lang: opts.lang || "ro",
       source: opts.source || "widget",
+      lessonType: "standard",  // "standard" | "exam"
       transmission: "",        // "" | "manual" | "automatic"
       instructor: null,        // selected instructor object
       slot: null,              // selected slot object
@@ -219,11 +234,12 @@
       b.onclick = () => { state.lang = b.dataset.lang; applyLang(); rerender(); };
     });
 
-    $("[data-exit]").onclick = () => { state.slot = null; state.instructor = null; renderBest(); };
+    $("[data-exit]").onclick = () => { state.slot = null; state.instructor = null; renderLessonType(); };
 
-    let currentView = "best";
+    let currentView = "lessonType";
     function rerender() {
-      if (currentView === "best")        renderBest();
+      if (currentView === "lessonType")  renderLessonType();
+      else if (currentView === "best")   renderBest();
       else if (currentView === "inst")   renderInstructors();
       else if (currentView === "slots")  renderSlotPicker();
       else if (currentView === "contact") renderContact();
@@ -253,12 +269,54 @@
       });
     }
 
-    // ── VIEW: Best (start screen, 3 closest slots) ─────────────────────────
-    async function renderBest() {
-      currentView = "best";
+    // ── VIEW: Lesson type picker (first screen) ────────────────────────────
+    function renderLessonType() {
+      currentView = "lessonType";
       const L = state.lang;
       setProgress(1);
       setNav(null, false);
+
+      const lessons = [
+        { key: "lesson1", type: "standard" },
+        { key: "lesson2", type: "standard" },
+        { key: "lesson3", type: "exam"     },
+      ];
+
+      body.innerHTML = `
+        <p class="db-heading">${t(L, "lessonTypeQ")}</p>
+        <div class="db-slot-list" style="margin-bottom:20px">
+          ${lessons.map(l => `
+            <button class="db-slot-row${state.lessonType === l.type && l.key === _activeLessonKey() ? " active" : ""}"
+              type="button" data-lkey="${l.key}" data-ltype="${l.type}">
+              <div class="db-slot-time" style="font-size:15px;font-weight:500">${t(L, l.key)}</div>
+            </button>`).join("")}
+        </div>
+        <p class="db-lesson-hint">🎁 ${t(L, "lessonHint")}</p>`;
+
+      // track which card is selected
+      let selectedKey = lessons[0].key;
+      state.lessonType = lessons[0].type;
+      body.querySelectorAll("[data-lkey]").forEach(btn => {
+        if (btn.dataset.lkey === selectedKey) btn.classList.add("active");
+        btn.onclick = () => {
+          selectedKey = btn.dataset.lkey;
+          state.lessonType = btn.dataset.ltype;
+          body.querySelectorAll("[data-lkey]").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+        };
+      });
+
+      setFootCta(t(L, "continueBtn"), () => renderBest());
+    }
+
+    function _activeLessonKey() { return "lesson1"; } // default selection marker
+
+    // ── VIEW: Best (3 closest slots) ──────────────────────────────────────
+    async function renderBest() {
+      currentView = "best";
+      const L = state.lang;
+      setProgress(2);
+      setNav(() => renderLessonType(), true);
       body.innerHTML = `
         ${gearboxTabs()}
         <p class="db-title">${t(L, "titleBest")}</p>
@@ -312,7 +370,7 @@
     async function renderInstructors() {
       currentView = "inst";
       const L = state.lang;
-      setProgress(2);
+      setProgress(3);
       setNav(() => renderBest(), true);
       clearFoot();
 
@@ -367,7 +425,7 @@
     async function renderSlotPicker() {
       currentView = "slots";
       const L = state.lang;
-      setProgress(3);
+      setProgress(4);
       setNav(() => renderInstructors(), true);
       clearFoot();
 
@@ -537,7 +595,7 @@
     function renderContact() {
       currentView = "contact";
       const L = state.lang;
-      setProgress(4);
+      setProgress(5);
       setNav(() => state.fromInstructor ? renderSlotPicker() : renderBest(), true);
       clearFoot();
 
@@ -572,6 +630,11 @@
             <input id="db-phone" name="student_phone" required type="tel"
               placeholder="+373" autocomplete="tel" />
           </div>
+          <div class="db-field">
+            <label for="db-pickup">${t(L, "pickup")}</label>
+            <input id="db-pickup" name="pickup" placeholder="${t(L, "pickupPlaceholder")}"
+              autocomplete="street-address" />
+          </div>
           <div data-err></div>
         </form>`;
 
@@ -596,6 +659,8 @@
               slot_id: s.id,
               student_name: fd.get("student_name"),
               student_phone: fd.get("student_phone"),
+              notes: fd.get("pickup") || null,
+              lesson_type: state.lessonType,
               source: state.source,
               lang: state.lang,
             }),
@@ -658,7 +723,8 @@
         state.slot = null; state.instructor = null;
         state.fromInstructor = false; state.changeOpen = false;
         state.altInstructors = []; state.calDays = []; state.calSlots = {};
-        renderBest();
+        state.lessonType = "standard";
+        renderLessonType();
       };
     }
 
@@ -681,7 +747,7 @@
 
     // ── Boot ───────────────────────────────────────────────────────────────
     applyLang();
-    renderBest();
+    renderLessonType();
   }
 
   global.DriveBookWidget = { mount };
