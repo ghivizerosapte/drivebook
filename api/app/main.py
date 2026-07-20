@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.db import close_pool, get_pool
@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="DriveBook API",
-    version="1.0.0",
+    version="2.0.0",
     description="Independent multi-channel booking module — Chișinău",
     lifespan=lifespan,
 )
@@ -46,6 +46,11 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/book", status_code=302)
 
 
 @app.get("/book")

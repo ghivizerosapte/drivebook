@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     database_url: str = os.environ.get(
         "DATABASE_URL",
-        "postgresql://drivebook:drivebook@127.0.0.1:5433/drivebook",
+        "postgresql://drivebook:drivebook@127.0.0.1:5433/drivebook?sslmode=disable",
     )
     # asyncpg wants postgresql:// without +asyncpg
     api_host: str = "127.0.0.1"
