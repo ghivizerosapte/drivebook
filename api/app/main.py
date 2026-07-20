@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 WIDGET_DIR = ROOT / "widget" / "dist"
 WIDGET_SRC = ROOT / "widget"
 ADMIN_DIR = ROOT / "admin"
+LANDING_DIR = ROOT / "landing"
 
 
 @asynccontextmanager
@@ -50,6 +51,9 @@ app.include_router(router)
 
 @app.get("/")
 async def root():
+    landing_index = LANDING_DIR / "index.html"
+    if landing_index.exists():
+        return FileResponse(landing_index)
     return RedirectResponse(url="/book", status_code=302)
 
 
@@ -65,6 +69,9 @@ async def hosted_book():
 
 if ADMIN_DIR.exists():
     app.mount("/admin", StaticFiles(directory=str(ADMIN_DIR), html=True), name="admin")
+
+if LANDING_DIR.exists():
+    app.mount("/landing", StaticFiles(directory=str(LANDING_DIR)), name="landing")
 
 # Widget static: serve source during Stage 4 development
 if WIDGET_DIR.exists():

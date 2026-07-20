@@ -56,6 +56,7 @@ drivebook/
   api/               # FastAPI + migrations + seed
   widget/            # Shadow DOM embed + hosted page sources
   admin/             # QA panel
+  landing/           # marketing homepage (static HTML, embeds the widget), served at "/"
   bots/              # telegram + whatsapp adapters
   load/              # k6 scripts
 ```
