@@ -1,180 +1,235 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DriveBook Admin / QA</title>
+  <title>DriveBook Admin · BSM Orange</title>
+  <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
-    :root { --ink:#2e2e36; --orange:#f9812a; --line:#e9ecef; --bg:#f7f8fa; }
-    body { margin:0; font-family: system-ui,sans-serif; background:var(--bg); color:var(--ink); }
-    header { background:#fff; border-bottom:1px solid var(--line); padding:14px 18px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-    header strong { color:var(--orange); }
-    main { max-width:1100px; margin:0 auto; padding:18px; display:grid; gap:16px; }
-    .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; }
-    h2 { margin:0 0 10px; font-size:16px; }
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    th,td { text-align:left; padding:8px; border-bottom:1px solid var(--line); vertical-align:top; }
-    button, .btn { background:var(--orange); color:#fff; border:0; border-radius:8px; padding:6px 10px; cursor:pointer; font-weight:700; text-decoration:none; display:inline-block; }
-    button.ghost { background:#fff4eb; color:#e56f18; }
-    .metrics { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
-    .m { background:#fff4eb; border-radius:10px; padding:10px; }
-    .m b { display:block; font-size:20px; }
-    input, select, textarea { border:1px solid var(--line); border-radius:8px; padding:8px; font:inherit; width:100%; box-sizing:border-box; }
-    .row { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:8px; align-items:end; }
-    pre { background:#0f172a; color:#e2e8f0; padding:12px; border-radius:10px; overflow:auto; font-size:12px; max-height:280px; }
-    a { color:var(--orange); }
-    .auth { display:flex; gap:8px; align-items:center; }
+    :root {
+      --ink: #4D4D4D;
+      --muted: #666666;
+      --orange: #FF8200;
+      --orange-dark: #E07200;
+      --bg: #F2F2F2;
+      --line: #E9ECEF;
+      --green: #2ecc71;
+      --red: #e74c3c;
+    }
+    * { box-sizing: border-box; }
+    body { 
+      margin: 0; 
+      font-family: "Titillium Web", system-ui, sans-serif; 
+      background: var(--bg); 
+      color: var(--muted); 
+    }
+
+    /* ---- login ---- */
+    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #F2F2F2 0%, #FFFFFF 100%); }
+    .login-card { background: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 40px; width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+    .login-card h1 { margin: 0 0 8px; font-size: 24px; color: var(--ink); text-transform: uppercase; letter-spacing: 0.05em; }
+    .login-card p { color: var(--orange); margin: 0 0 24px; font-size: 14px; font-weight: 700; text-transform: uppercase; }
+    .login-card label { font-size: 12px; font-weight: 700; display: block; margin-top: 16px; color: var(--ink); text-transform: uppercase; }
+    .login-card input, .login-card select { border: 1px solid var(--line); border-radius: 4px; padding: 12px; font: inherit; width: 100%; margin-top: 6px; }
+    .login-card button { margin-top: 24px; width: 100%; background: var(--orange); color: #fff; border: 0; border-radius: 4px; padding: 14px; cursor: pointer; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .login-error { color: var(--red); font-size: 13px; margin-top: 10px; min-height: 18px; text-align: center; }
+
+    /* ---- topbar ---- */
+    .topbar { background: #fff; border-bottom: 1px solid var(--line); padding: 12px 24px; display: flex; gap: 16px; align-items: center; position: sticky; top: 0; z-index: 10; }
+    .topbar strong { color: var(--orange); font-size: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .role-badge { background: var(--ink); color: #fff; border-radius: 2px; padding: 4px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .topbar-right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+    .topbar a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600; }
+    .topbar a:hover { color: var(--orange); }
+    .topbar button { background: var(--orange); color: #fff; border: 0; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-weight: 700; text-transform: uppercase; font-size: 12px; }
+    .topbar button.ghost { background: transparent; color: var(--orange); border: 1px solid var(--orange); }
+
+    /* ---- layout ---- */
+    main { max-width: 1200px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 24px; }
+    .card h2 { margin: 0 0 16px; font-size: 16px; color: var(--ink); text-transform: uppercase; border-bottom: 2px solid var(--orange); display: inline-block; padding-bottom: 4px; }
+
+    /* ---- metrics ---- */
+    .metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+    .m { background: #F8F9FA; border: 1px solid var(--line); border-radius: 4px; padding: 20px; text-align: center; }
+    .m b { display: block; font-size: 28px; color: var(--orange); line-height: 1; margin-bottom: 4px; }
+    .m sup { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+
+    /* ---- tables ---- */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--line); }
+    th { font-weight: 700; color: var(--ink); font-size: 12px; text-transform: uppercase; background: #F8F9FA; }
+    tr:hover { background: #FAFAFA; }
+
+    /* ---- buttons ---- */
+    button, .btn { background: var(--orange); color: #fff; border: 0; border-radius: 4px; padding: 10px 18px; cursor: pointer; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; }
+    button.ghost { background: transparent; color: var(--orange); border: 1px solid var(--orange); }
+    button.danger { background: var(--red); }
+    button.green { background: var(--green); }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 8px; }
+    .tabs button { border-radius: 4px 4px 0 0; background: #E9ECEF; color: var(--muted); border-bottom: 2px solid transparent; }
+    .tabs button.active { background: #fff; color: var(--orange); border: 1px solid var(--line); border-bottom: 2px solid var(--orange); }
+
+    pre { background: #1E1E1E; color: #D4D4D4; padding: 16px; border-radius: 4px; font-size: 13px; overflow: auto; }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <header>
-    <strong>DriveBook</strong> Admin / QA
-    <div class="auth">
-      <input id="pwd" type="password" placeholder="Admin password" style="width:160px" />
-      <button class="ghost" id="savePwd">Save</button>
+
+<div id="loginView" class="login-wrap">
+  <div class="login-card">
+    <h1>DriveBook</h1>
+    <p>Admin Portal</p>
+    <label>Роль
+      <select id="loginRole">
+        <option value="admin">Администратор</option>
+        <option value="instructor">Инструктор</option>
+        <option value="supervisor">Супервайзер</option>
+      </select>
+    </label>
+    <label>Пароль
+      <input type="password" id="loginPw" value="" placeholder="••••••" />
+    </label>
+    <div class="login-error" id="loginErr"></div>
+    <button onclick="doLogin()">Войти</button>
+  </div>
+</div>
+
+<div id="appView" class="hidden">
+  <div class="topbar">
+    <strong>DriveBook</strong>
+    <span class="role-badge" id="roleBadge">Admin</span>
+    <a href="/book" target="_blank">📅 КЛИЕНТСКАЯ СТРАНИЦА</a>
+    <div class="topbar-right">
+      <button class="ghost" onclick="loadAll()">Обновить</button>
+      <button onclick="doLogout()">Выйти</button>
     </div>
-    <a href="/book" target="_blank">/book</a>
-    <a href="/docs" target="_blank">API docs</a>
-    <button class="ghost" id="reload">Refresh</button>
-  </header>
+  </div>
+
   <main>
-    <section class="card">
-      <h2>Stats</h2>
-      <div class="metrics" id="stats"></div>
-    </section>
-    <section class="card">
-      <h2>API console</h2>
-      <div class="row">
-        <div><label>Method<select id="m"><option>GET</option><option>POST</option></select></label></div>
-        <div style="grid-column:span 2"><label>Path<input id="path" value="/v1/slots/best?limit=3" /></label></div>
-        <button id="send">Send</button>
+    <div class="tabs" id="tabs"></div>
+
+    <div id="adminPanel" class="hidden">
+      <div class="card"><h2>Статистика</h2><div class="metrics" id="adminStats"></div></div>
+      <div class="card" style="margin-top:24px"><h2>Загрузка по районам</h2><div id="adminSlots"></div></div>
+    </div>
+
+    <div id="instructorPanel" class="hidden">
+      <div class="card">
+        <h2>Мои слоты</h2>
+        <div style="display:flex;gap:12px;margin-bottom:20px;align-items:center;">
+          <input type="date" id="instructorDate" />
+          <button onclick="loadMySlots()">Показать</button>
+        </div>
+        <div id="mySlots"></div>
       </div>
-      <label style="display:block;margin-top:8px">Body<textarea id="body" rows="3">{}</textarea></label>
-      <pre id="out">// response</pre>
-    </section>
-    <section class="card">
-      <h2>Recent bookings</h2>
-      <div id="bookings">Auth required…</div>
-    </section>
-    <section class="card">
-      <h2>Events (24h analytics)</h2>
-      <div id="events"></div>
-    </section>
-    <section class="card">
-      <h2>Waitlist</h2>
-      <div id="waitlist"></div>
-    </section>
-    <section class="card">
-      <h2>Quick actions</h2>
-      <button id="quickBook">Book test student (best slot)</button>
-      <button class="ghost" id="sim">Sim booking +5 min</button>
-      <pre id="log"></pre>
-    </section>
+    </div>
+
+    <div id="supervisorPanel" class="hidden">
+      <div class="card">
+        <h2>Аудит-лог</h2>
+        <button onclick="loadAuditLog()">Загрузить логи</button>
+        <pre id="auditLog" style="margin-top:16px">// ...</pre>
+      </div>
+    </div>
   </main>
-  <script>
-    const pwdEl = document.getElementById('pwd');
-    pwdEl.value = localStorage.getItem('db_admin_pwd') || 'drivebook-admin';
-    document.getElementById('savePwd').onclick = () => {
-      localStorage.setItem('db_admin_pwd', pwdEl.value);
-      loadAll();
-    };
-    const headers = () => ({
-      'Content-Type': 'application/json',
-      'X-Admin-Password': pwdEl.value,
-    });
-    async function api(path, opts={}) {
-      const r = await fetch(path, {
-        ...opts,
-        headers: { ...headers(), ...(opts.headers||{}) },
-      });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail||r.status));
-      return j;
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('db_token');
+let user = JSON.parse(localStorage.getItem('db_user') || 'null');
+
+function doLogin() {
+  const role = document.getElementById('loginRole').value;
+  const pw = document.getElementById('loginPw').value;
+  fetch(API + '/v1/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: role === 'admin' ? 'admin' : (role === 'supervisor' ? 'supervisor' : 'instructor_001'), password: pw })
+  }).then(r => r.json()).then(j => {
+    if (j.token) {
+      token = j.token; user = j.user;
+      localStorage.setItem('db_token', token);
+      localStorage.setItem('db_user', JSON.stringify(user));
+      enterApp();
+    } else { document.getElementById('loginErr').textContent = j.detail || 'Ошибка'; }
+  });
+}
+
+function doLogout() {
+  token = user = null;
+  localStorage.clear();
+  location.reload();
+}
+
+function enterApp() {
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('appView').classList.remove('hidden');
+  document.getElementById('roleBadge').textContent = user.role;
+  
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = '';
+  ['admin', 'instructor', 'supervisor'].forEach(r => {
+    if (user.role === 'admin' || user.role === r) {
+      const b = document.createElement('button');
+      b.textContent = r;
+      b.onclick = () => {
+        document.querySelectorAll('.tabs button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        showPanel(r);
+      };
+      if (user.role === r) b.classList.add('active');
+      tabs.appendChild(b);
     }
-    async function loadStats() {
-      const s = await api('/v1/admin/stats');
-      document.getElementById('stats').innerHTML = `
-        <div class="m"><b>${s.instructors}</b>instructors</div>
-        <div class="m"><b>${s.open_slots}</b>open</div>
-        <div class="m"><b>${s.booked_slots}</b>booked</div>
-        <div class="m"><b>${s.bookings_total}</b>bookings</div>
-        <div class="m"><b>${s.waitlist_open||0}</b>waitlist</div>
-        <div class="m"><b>${s.events_24h||0}</b>events 24h</div>
-        <div class="m"><b>${s.capacity.visible_slots_est||'—'}</b>vis. slots est</div>
-        <div class="m"><b>${s.traffic_estimate.peak_rps}</b>peak RPS</div>`;
-    }
-    async function loadBookings() {
-      const data = await api('/v1/admin/bookings?limit=25');
-      document.getElementById('bookings').innerHTML = data.items.length ? `
-        <table><thead><tr><th>ID</th><th>Student</th><th>Instructor</th><th>When</th><th>Channel</th><th>Status</th><th></th></tr></thead>
-        <tbody>${data.items.map(b=>`<tr>
-          <td>${b.id}</td><td>${b.student_name}<br><small>${b.student_phone}</small></td>
-          <td>${b.instructor_name}</td><td>${new Date(b.starts_at).toLocaleString()}</td>
-          <td>${b.channel||b.source}</td><td>${b.status}</td>
-          <td>${b.status!=='cancelled'?`<button data-c="${b.id}" class="ghost">Cancel</button>`:''}</td>
-        </tr>`).join('')}</tbody></table>` : '<p>No bookings</p>';
-      document.querySelectorAll('[data-c]').forEach(btn => {
-        btn.onclick = async () => { await api('/v1/bookings/'+btn.dataset.c+'/cancel',{method:'POST'}); loadAll(); };
-      });
-    }
-    async function loadEvents() {
-      try {
-        const data = await api('/v1/admin/events?limit=20');
-        document.getElementById('events').innerHTML = `<table><thead><tr><th>When</th><th>Type</th><th>Channel</th><th>IP</th></tr></thead>
-          <tbody>${data.items.map(e=>`<tr><td>${new Date(e.created_at).toLocaleString()}</td><td>${e.event_type}</td><td>${e.channel}</td><td>${e.ip||''}</td></tr>`).join('')}</tbody></table>`;
-      } catch(e) { document.getElementById('events').textContent = e.message; }
-    }
-    async function loadWaitlist() {
-      try {
-        const data = await api('/v1/admin/waitlist');
-        document.getElementById('waitlist').innerHTML = data.items.length
-          ? `<table><thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Status</th><th>Source</th></tr></thead>
-             <tbody>${data.items.map(w=>`<tr><td>${w.id}</td><td>${w.student_name}</td><td>${w.student_phone}</td><td>${w.status}</td><td>${w.source}</td></tr>`).join('')}</tbody></table>`
-          : '<p>Empty</p>';
-      } catch(e) { document.getElementById('waitlist').textContent = e.message; }
-    }
-    async function loadAll() {
-      try { await loadStats(); await loadBookings(); await loadEvents(); await loadWaitlist(); }
-      catch(e) { document.getElementById('bookings').textContent = 'Auth/error: '+e.message; }
-    }
-    document.getElementById('reload').onclick = loadAll;
-    document.getElementById('send').onclick = async () => {
-      try {
-        const method = document.getElementById('m').value;
-        const path = document.getElementById('path').value;
-        const body = document.getElementById('body').value;
-        const opts = { method, headers: headers() };
-        if (method === 'POST') {
-          opts.body = body;
-          opts.headers['Idempotency-Key'] = 'admin-console-'+Date.now();
-        }
-        const r = await fetch(path, opts);
-        const text = await r.text();
-        document.getElementById('out').textContent = r.status + '\n' + text;
-      } catch(e) { document.getElementById('out').textContent = e.message; }
-    };
-    document.getElementById('quickBook').onclick = async () => {
-      try {
-        const best = await api('/v1/slots/best?limit=1');
-        const slot = best.items[0];
-        if (!slot) throw new Error('No slots');
-        const res = await api('/v1/bookings', {
-          method:'POST',
-          headers: { ...headers(), 'Idempotency-Key': 'admin-'+Date.now() },
-          body: JSON.stringify({ slot_id: slot.id, student_name:'Admin Test', student_phone:'+37361112233', source:'admin', lang:'ro' }),
-        });
-        document.getElementById('log').textContent = JSON.stringify(res,null,2);
-        loadAll();
-      } catch(e) { document.getElementById('log').textContent = e.message; }
-    };
-    document.getElementById('sim').onclick = async () => {
-      try {
-        const res = await api('/v1/admin/sim/booking?minutes_from_now=5', { method:'POST' });
-        document.getElementById('log').textContent = JSON.stringify(res,null,2);
-        loadAll();
-      } catch(e) { document.getElementById('log').textContent = e.message; }
-    };
-    loadAll();
-  </script>
+  });
+  showPanel(user.role);
+  if (user.role === 'instructor') document.getElementById('instructorDate').value = new Date().toISOString().split('T')[0];
+  loadAll();
+}
+
+function showPanel(r) {
+  ['adminPanel', 'instructorPanel', 'supervisorPanel'].forEach(p => document.getElementById(p).classList.add('hidden'));
+  document.getElementById(r + 'Panel').classList.remove('hidden');
+}
+
+async function loadAll() {
+  if (!token) return;
+  if (user.role === 'admin') loadAdminDashboard();
+  if (user.role === 'instructor') loadMySlots();
+}
+
+async function loadAdminDashboard() {
+  const res = await fetch(API + '/v1/admin/dashboard', { headers: { 'Authorization': 'Bearer ' + token } });
+  const j = await res.json();
+  const s = j.stats;
+  document.getElementById('adminStats').innerHTML = `
+    <div class="m"><b>${s.instructors}</b><sup>Инструкторов</sup></div>
+    <div class="m"><b>${s.open_slots}</b><sup>Свободно</sup></div>
+    <div class="m"><b>${s.booked_slots}</b><sup>Занято</sup></div>
+    <div class="m"><b>${s.bookings_total}</b><sup>Всего броней</sup></div>
+  `;
+  const loads = j.slot_load || [];
+  document.getElementById('adminSlots').innerHTML = `<table><thead><tr><th>Район</th><th>Всего</th><th>Занято</th></tr></thead>
+    <tbody>${loads.map(r => `<tr><td>${r.district}</td><td>${r.total}</td><td>${r.booked}</td></tr>`).join('')}</tbody></table>`;
+}
+
+async function loadMySlots() {
+  const date = document.getElementById('instructorDate').value;
+  const res = await fetch(API + `/v1/instructors/${user.instructor_id}/slots?from=${date}T00:00:00&to=${date}T23:59:59`, { headers: { 'Authorization': 'Bearer ' + token } });
+  const j = await res.json();
+  document.getElementById('mySlots').innerHTML = j.items.map(s => `<div>${s.starts_at.split('T')[1].slice(0,5)} - ${s.status}</div>`).join('') || 'Нет слотов';
+}
+
+async function loadAuditLog() {
+  const res = await fetch(API + '/v1/admin/audit-log', { headers: { 'Authorization': 'Bearer ' + token } });
+  const j = await res.json();
+  document.getElementById('auditLog').textContent = JSON.stringify(j, null, 2);
+}
+
+if (token) enterApp(); else document.getElementById('loginView').classList.remove('hidden');
+</script>
 </body>
 </html>
