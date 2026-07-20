@@ -13,7 +13,6 @@ Standalone booking UI. No React. Embed must not leak host CSS.
 
 ## Files
 - `embed.js` — loader
-- `widget.js` — logic (used by hosted + shadow root)
+- `widget.js` — logic (used by hosted + shadow root); ro/ru strings live inline in `STR`
 - `widget.css` — styles
 - `book.html` — hosted full page
-- `i18n.js` — ro/ru strings

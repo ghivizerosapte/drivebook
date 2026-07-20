@@ -1,10 +1,21 @@
-.PHONY: run seed migrate
+VENV = api/.venv
+PY   = $(VENV)/bin/python
 
-run:
-	cd api && python -m uvicorn app.main:app --host 127.0.0.1 --port 8100 --reload
+.PHONY: install run migrate seed
 
-migrate:
-	cd api && python -m app.migrate
+install:
+	python3 -m venv $(VENV)
+	$(PY) -m pip install -q -r api/requirements.txt
 
-seed:
-	cd api && python -m app.seed --force
+run: $(VENV)
+	cd api && .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8100 --reload
+
+migrate: $(VENV)
+	cd api && .venv/bin/python -m app.migrate
+
+seed: $(VENV)
+	cd api && .venv/bin/python -m app.seed --force
+
+$(VENV):
+	@echo "No venv — run: make install"
+	@exit 1

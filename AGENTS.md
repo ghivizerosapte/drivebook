@@ -73,3 +73,59 @@ uvicorn app.main:app --host 127.0.0.1 --port 8100
 ## Open questions / blockers
 
 - Source file `raw/final-prompt-v1.md` was **not found** on disk. Working from conversation + stage protocol → see `SPEC.md`. If a fuller TZ appears, merge into SPEC and re-plan deltas.
+
+---
+
+
+---
+
+## Agent orchestration (local delegation)
+
+You (Claude Code, Sonnet via Pro) are the sole "thinking" loop on this project.
+You plan, you decide, you verify. You have one delegate: **local Qwen**, via a wrapper script.
+
+**Script path:** `~/scripts/worker.py` (fallback: `~/Downloads/worker.py` if not yet moved)
+
+### Calling the worker
+
+```bash
+python3 ~/scripts/worker.py "precise instruction" \
+  --files api/app/main.py \
+  --save-to drivebook/progress-notes.md
+```
+
+Flags: `--files` (context files, project paths or vault filenames), `--search KEYWORD`
+(grep the Obsidian vault instead), `--stdin` (pipe context in), `--save-to FILE`
+(append result to `$OBSIDIAN_VAULT/FILE` with timestamp; `--overwrite` replaces
+instead of appending), `--tokens N` (response cap, default 4096).
+
+### Golden rule
+
+Qwen executes exactly what's written — no initiative, no reliable self-verification.
+It has previously reported success on tasks where files were never actually written.
+
+**Every worker.py call for code changes MUST be followed by a manual check before
+the step counts as done** — this satisfies rule 8 (evidence required) above:
+
+```bash
+git diff --stat
+cat <changed_file>
+```
+
+If nothing changed or the result is wrong: either fix it yourself, or re-issue the
+task to Qwen with a more precise target (exact file, exact function, exact expected
+output). Never mark a `PLAN.md` stage complete based on Qwen's own report alone.
+
+### Scope for delegation
+
+Delegate to Qwen: mechanical/rote code changes with a clear, narrow spec (add a
+field, write a migration matching an existing pattern, write tests for a function
+you specify). Do NOT delegate: stage planning, architecture calls, anything touching
+the hard rules above, race-safety logic, or migration ordering — do those yourself.
+
+### Escalation to Fable/Opus (manual, user-mediated)
+
+You have no direct API access to Fable or Opus — they're used manually by the user
+in claude.ai. Suggest escalation (don't block on it) for: architecture decisions with
+lasting consequences, or final review before marking a major stage/PLAN.md milestone
+done. Routine work stays with you + Qwen.
