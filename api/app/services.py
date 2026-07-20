@@ -62,6 +62,37 @@ async def emit_event(
 
 # ── auth helpers ────────────────────────────────────────────────────────────
 
+try:
+    import argon2
+    HAS_ARGON2 = True
+except ImportError:
+    HAS_ARGON2 = False
+
+
+def hash_password(pw: str) -> str:
+    """Shared by seed.py and the change-password endpoint."""
+    if HAS_ARGON2:
+        h = argon2.low_level.hash_secret(
+            secret=pw.encode(), salt=secrets.token_bytes(16), time_cost=2,
+            memory_cost=65536, parallelism=1, hash_len=32, type=argon2.low_level.Type.ID,
+        )
+        return h.decode()
+    # fallback: SHA-256 (NOT for production — dev only)
+    return "sha256:" + hashlib.sha256(pw.encode()).hexdigest()
+
+
+def _verify_password(stored: str, password: str) -> bool:
+    if stored.startswith("sha256:"):
+        return "sha256:" + hashlib.sha256(password.encode()).hexdigest() == stored
+    if stored.startswith("$argon2"):
+        try:
+            argon2.PasswordHasher().verify(stored, password)
+            return True
+        except argon2.exceptions.VerifyMismatchError:
+            return False
+    return False
+
+
 async def authenticate_user(
     conn: asyncpg.Connection,
     username: str,
@@ -69,24 +100,11 @@ async def authenticate_user(
 ) -> Optional[dict]:
     """Verify password hash and return user dict, or None."""
     row = await conn.fetchrow(
-        "SELECT id, username, role, password_hash, instructor_id FROM users WHERE username = $1",
+        "SELECT id, username, role, password_hash, instructor_id, must_change_password "
+        "FROM users WHERE username = $1",
         username,
     )
-    if not row:
-        return None
-    stored = row["password_hash"]
-    if stored.startswith("sha256:"):
-        # dev fallback
-        if "sha256:" + hashlib.sha256(password.encode()).hexdigest() != stored:
-            return None
-    elif stored.startswith("$argon2"):
-        import argon2
-
-        try:
-            argon2.PasswordHasher().verify(stored, password)
-        except argon2.exceptions.VerifyMismatchError:
-            return None
-    else:
+    if not row or not _verify_password(row["password_hash"], password):
         return None
 
     # update last_login
@@ -99,7 +117,26 @@ async def authenticate_user(
         "username": row["username"],
         "role": row["role"],
         "instructor_id": row["instructor_id"],
+        "must_change_password": row["must_change_password"],
     }
+
+
+async def change_password(
+    conn: asyncpg.Connection,
+    user_id: int,
+    old_password: str,
+    new_password: str,
+) -> bool:
+    """Verify old_password, then set new_password and clear must_change_password.
+    Returns False if old_password doesn't match (no change made)."""
+    row = await conn.fetchrow("SELECT password_hash FROM users WHERE id = $1", user_id)
+    if not row or not _verify_password(row["password_hash"], old_password):
+        return False
+    await conn.execute(
+        "UPDATE users SET password_hash = $1, must_change_password = FALSE WHERE id = $2",
+        hash_password(new_password), user_id,
+    )
+    return True
 
 
 async def create_session(

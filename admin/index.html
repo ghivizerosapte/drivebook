@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DriveBook Admin · BSM Orange</title>
+  <title>DriveBook Admin · Navy &amp; Amber</title>
   <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --ink: #4D4D4D;
-      --muted: #666666;
-      --orange: #FF8200;
-      --orange-dark: #E07200;
-      --bg: #F2F2F2;
-      --line: #E9ECEF;
+      --navy: #1B3A5C;
+      --ink: #22282E;
+      --muted: #6B7480;
+      --amber: #F2A93B;
+      --amber-dark: #D6901F;
+      --bg: #F5F7FA;
+      --line: #E2E5E9;
       --green: #2ecc71;
       --red: #e74c3c;
     }
@@ -25,34 +26,34 @@
     }
 
     /* ---- login ---- */
-    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #F2F2F2 0%, #FFFFFF 100%); }
+    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #F5F7FA 0%, #FFFFFF 100%); }
     .login-card { background: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 40px; width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
     .login-card h1 { margin: 0 0 8px; font-size: 24px; color: var(--ink); text-transform: uppercase; letter-spacing: 0.05em; }
-    .login-card p { color: var(--orange); margin: 0 0 24px; font-size: 14px; font-weight: 700; text-transform: uppercase; }
+    .login-card p { color: var(--navy); margin: 0 0 24px; font-size: 14px; font-weight: 700; text-transform: uppercase; }
     .login-card label { font-size: 12px; font-weight: 700; display: block; margin-top: 16px; color: var(--ink); text-transform: uppercase; }
     .login-card input, .login-card select { border: 1px solid var(--line); border-radius: 4px; padding: 12px; font: inherit; width: 100%; margin-top: 6px; }
-    .login-card button { margin-top: 24px; width: 100%; background: var(--orange); color: #fff; border: 0; border-radius: 4px; padding: 14px; cursor: pointer; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .login-card button { margin-top: 24px; width: 100%; background: var(--amber); color: var(--navy); border: 0; border-radius: 4px; padding: 14px; cursor: pointer; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.05em; }
     .login-error { color: var(--red); font-size: 13px; margin-top: 10px; min-height: 18px; text-align: center; }
 
     /* ---- topbar ---- */
     .topbar { background: #fff; border-bottom: 1px solid var(--line); padding: 12px 24px; display: flex; gap: 16px; align-items: center; position: sticky; top: 0; z-index: 10; }
-    .topbar strong { color: var(--orange); font-size: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .topbar strong { color: var(--navy); font-size: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
     .role-badge { background: var(--ink); color: #fff; border-radius: 2px; padding: 4px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
     .topbar-right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
     .topbar a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600; }
-    .topbar a:hover { color: var(--orange); }
-    .topbar button { background: var(--orange); color: #fff; border: 0; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-weight: 700; text-transform: uppercase; font-size: 12px; }
-    .topbar button.ghost { background: transparent; color: var(--orange); border: 1px solid var(--orange); }
+    .topbar a:hover { color: var(--navy); }
+    .topbar button { background: var(--amber); color: var(--navy); border: 0; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-weight: 700; text-transform: uppercase; font-size: 12px; }
+    .topbar button.ghost { background: transparent; color: var(--navy); border: 1px solid var(--amber); }
 
     /* ---- layout ---- */
     main { max-width: 1200px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; }
     .card { background: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 24px; }
-    .card h2 { margin: 0 0 16px; font-size: 16px; color: var(--ink); text-transform: uppercase; border-bottom: 2px solid var(--orange); display: inline-block; padding-bottom: 4px; }
+    .card h2 { margin: 0 0 16px; font-size: 16px; color: var(--ink); text-transform: uppercase; border-bottom: 2px solid var(--amber); display: inline-block; padding-bottom: 4px; }
 
     /* ---- metrics ---- */
     .metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
     .m { background: #F8F9FA; border: 1px solid var(--line); border-radius: 4px; padding: 20px; text-align: center; }
-    .m b { display: block; font-size: 28px; color: var(--orange); line-height: 1; margin-bottom: 4px; }
+    .m b { display: block; font-size: 28px; color: var(--navy); line-height: 1; margin-bottom: 4px; }
     .m sup { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
 
     /* ---- tables ---- */
@@ -62,14 +63,14 @@
     tr:hover { background: #FAFAFA; }
 
     /* ---- buttons ---- */
-    button, .btn { background: var(--orange); color: #fff; border: 0; border-radius: 4px; padding: 10px 18px; cursor: pointer; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; }
-    button.ghost { background: transparent; color: var(--orange); border: 1px solid var(--orange); }
-    button.danger { background: var(--red); }
-    button.green { background: var(--green); }
+    button, .btn { background: var(--amber); color: var(--navy); border: 0; border-radius: 4px; padding: 10px 18px; cursor: pointer; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; }
+    button.ghost { background: transparent; color: var(--navy); border: 1px solid var(--amber); }
+    button.danger { background: var(--red); color: #fff; }
+    button.green { background: var(--green); color: #fff; }
 
     .tabs { display: flex; gap: 8px; margin-bottom: 8px; }
     .tabs button { border-radius: 4px 4px 0 0; background: #E9ECEF; color: var(--muted); border-bottom: 2px solid transparent; }
-    .tabs button.active { background: #fff; color: var(--orange); border: 1px solid var(--line); border-bottom: 2px solid var(--orange); }
+    .tabs button.active { background: #fff; color: var(--navy); border: 1px solid var(--line); border-bottom: 2px solid var(--amber); }
 
     pre { background: #1E1E1E; color: #D4D4D4; padding: 16px; border-radius: 4px; font-size: 13px; overflow: auto; }
 
@@ -82,18 +83,29 @@
   <div class="login-card">
     <h1>DriveBook</h1>
     <p>Admin Portal</p>
-    <label>Роль
-      <select id="loginRole">
-        <option value="admin">Администратор</option>
-        <option value="instructor">Инструктор</option>
-        <option value="supervisor">Супервайзер</option>
-      </select>
+    <label>Логин
+      <input type="text" id="loginUser" placeholder="Логин" autocomplete="username" />
     </label>
     <label>Пароль
-      <input type="password" id="loginPw" value="" placeholder="••••••" />
+      <input type="password" id="loginPw" value="" placeholder="••••••" autocomplete="current-password" />
     </label>
     <div class="login-error" id="loginErr"></div>
     <button onclick="doLogin()">Войти</button>
+  </div>
+</div>
+
+<div id="changePwView" class="login-wrap hidden">
+  <div class="login-card">
+    <h1>DriveBook</h1>
+    <p>Смените пароль</p>
+    <label>Новый пароль
+      <input type="password" id="newPw" placeholder="Минимум 6 символов" autocomplete="new-password" />
+    </label>
+    <label>Повторите пароль
+      <input type="password" id="newPw2" placeholder="Ещё раз" autocomplete="new-password" />
+    </label>
+    <div class="login-error" id="changePwErr"></div>
+    <button onclick="doChangePassword()">Сохранить и войти</button>
   </div>
 </div>
 
@@ -142,21 +154,70 @@ const API = '';
 let token = localStorage.getItem('db_token');
 let user = JSON.parse(localStorage.getItem('db_user') || 'null');
 
+// Robustly stringify an API error body: a plain "detail" string, or a
+// Pydantic validation-error array ([{loc,msg,type}, ...]) — without this,
+// rendering the array directly gives "[object Object]".
+function errMessage(data, fallback) {
+  if (data && typeof data.detail === 'string') return data.detail;
+  if (data && Array.isArray(data.detail) && data.detail.length) return data.detail[0].msg || fallback;
+  return fallback;
+}
+
+let pendingOldPw = null; // held in memory only until a forced password change completes
+
 function doLogin() {
-  const role = document.getElementById('loginRole').value;
+  const username = document.getElementById('loginUser').value.trim();
   const pw = document.getElementById('loginPw').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
   fetch(API + '/v1/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: role === 'admin' ? 'admin' : (role === 'supervisor' ? 'supervisor' : 'instructor_001'), password: pw })
-  }).then(r => r.json()).then(j => {
-    if (j.token) {
-      token = j.token; user = j.user;
-      localStorage.setItem('db_token', token);
-      localStorage.setItem('db_user', JSON.stringify(user));
-      enterApp();
-    } else { document.getElementById('loginErr').textContent = j.detail || 'Ошибка'; }
-  });
+    body: JSON.stringify({ username, password: pw })
+  }).then(r => r.json().then(j => ({ ok: r.ok, j })))
+    .then(({ ok, j }) => {
+      if (ok && j.token) {
+        token = j.token; user = j.user;
+        localStorage.setItem('db_token', token);
+        localStorage.setItem('db_user', JSON.stringify(user));
+        if (user.must_change_password) {
+          pendingOldPw = pw;
+          document.getElementById('loginView').classList.add('hidden');
+          document.getElementById('changePwView').classList.remove('hidden');
+        } else {
+          enterApp();
+        }
+      } else {
+        errEl.textContent = errMessage(j, 'Неверный логин или пароль');
+      }
+    })
+    .catch(() => { errEl.textContent = 'Не удалось связаться с сервером'; });
+}
+
+function doChangePassword() {
+  const newPw = document.getElementById('newPw').value;
+  const newPw2 = document.getElementById('newPw2').value;
+  const errEl = document.getElementById('changePwErr');
+  errEl.textContent = '';
+  if (newPw.length < 6) { errEl.textContent = 'Минимум 6 символов'; return; }
+  if (newPw !== newPw2) { errEl.textContent = 'Пароли не совпадают'; return; }
+  fetch(API + '/v1/auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ old_password: pendingOldPw, new_password: newPw })
+  }).then(r => r.json().then(j => ({ ok: r.ok, j })))
+    .then(({ ok, j }) => {
+      if (ok && j.ok) {
+        pendingOldPw = null;
+        user.must_change_password = false;
+        localStorage.setItem('db_user', JSON.stringify(user));
+        document.getElementById('changePwView').classList.add('hidden');
+        enterApp();
+      } else {
+        errEl.textContent = errMessage(j, 'Не удалось изменить пароль');
+      }
+    })
+    .catch(() => { errEl.textContent = 'Не удалось связаться с сервером'; });
 }
 
 function doLogout() {
@@ -229,6 +290,12 @@ async function loadAuditLog() {
   document.getElementById('auditLog').textContent = JSON.stringify(j, null, 2);
 }
 
+if (token && user && user.must_change_password) {
+  // Page was reloaded mid forced-password-change — the old password we
+  // needed to complete it only ever lived in memory. Re-authenticate.
+  token = user = null;
+  localStorage.clear();
+}
 if (token) enterApp(); else document.getElementById('loginView').classList.remove('hidden');
 </script>
 </body>

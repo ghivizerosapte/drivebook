@@ -309,25 +309,35 @@
     });
   }
 
+  function mountWidget(lang) {
+    DriveBookWidget.mount(document.getElementById("lp-widget-mount"), {
+      apiBase: "",
+      source: "landing",
+      lang: lang
+    });
+  }
+
   document.querySelectorAll(".lp-lang button").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      applyLang(btn.getAttribute("data-lang"));
+      var lang = btn.getAttribute("data-lang");
+      applyLang(lang);
+      // The widget has no external "change language" hook, so a page-level
+      // language switch re-mounts it fresh — acceptable since this only
+      // fires from the top-of-page toggle, not mid-booking.
+      mountWidget(lang);
     });
   });
 
   var params = new URLSearchParams(location.search);
-  applyLang(params.get("lang") === "ru" ? "ru" : "ro");
+  var initialLang = params.get("lang") === "ru" ? "ru" : "ro";
+  applyLang(initialLang);
 
   var fab = document.getElementById("lp-fab");
   document.getElementById("lp-fab-toggle").addEventListener("click", function () {
     fab.classList.toggle("open");
   });
 
-  DriveBookWidget.mount(document.getElementById("lp-widget-mount"), {
-    apiBase: "",
-    source: "landing",
-    lang: params.get("lang") === "ru" ? "ru" : "ro"
-  });
+  mountWidget(initialLang);
 })();
 </script>
 </body>

@@ -7,17 +7,16 @@ Slots: sequential 90 min starting 07:00, last ends ≤ 21:00.
 
 Users: admin, supervisor, 100 instructors.
 """
-import asyncio, datetime, hashlib, os, random, secrets, sys
+import asyncio, datetime, os, random, sys
 from pathlib import Path
 from typing import Optional
 
 import asyncpg
+from dotenv import load_dotenv
 
-try:
-    import argon2
-    HAS_ARGON2 = True
-except ImportError:
-    HAS_ARGON2 = False
+from app.services import hash_password
+
+load_dotenv()  # picks up .env for DRIVEBOOK_SUPERVISOR_USERNAME/PASSWORD; no-op if absent
 
 ROOT = Path(__file__).resolve().parent
 MIGRATIONS = ROOT / "migrations"
@@ -52,16 +51,6 @@ INSTRUCTOR_NAMES_RO = [
 ]
 
 # ---------- helpers ----------
-
-def _hashpw(pw: str) -> str:
-    if HAS_ARGON2:
-        h = argon2.low_level.hash_secret(
-            secret=pw.encode(), salt=os.urandom(16), time_cost=2, memory_cost=65536, parallelism=1,
-            hash_len=32, type=argon2.low_level.Type.ID,
-        )
-        return h.decode()
-    # fallback: SHA-256 (NOT for production — dev only)
-    return "sha256:" + hashlib.sha256(pw.encode()).hexdigest()
 
 
 def _now():
@@ -107,18 +96,41 @@ async def seed(force: bool = False, db_url: Optional[str] = None):
 
         # ---------- users ----------
         print("Seeding users…")
+
+        # admin/admin is a deliberate weak bootstrap password — the login
+        # flow forces a change on first use, so it's fine to hardcode.
         users = [
-            ("admin", "drivebook-admin", "admin", None),
-            ("supervisor", "supervisor-secret", "supervisor", None),
+            ("admin", "admin", "admin", True),
         ]
-        for username, pw, role, _ in users:
+
+        # Supervisor is a real account, not a demo one — no hardcoded
+        # fallback. Set DRIVEBOOK_SUPERVISOR_USERNAME/PASSWORD (see
+        # .env.example) or this account is skipped entirely.
+        sup_user = os.environ.get("DRIVEBOOK_SUPERVISOR_USERNAME")
+        sup_pw = os.environ.get("DRIVEBOOK_SUPERVISOR_PASSWORD")
+        if sup_user and sup_pw:
+            # Rename any previously-seeded supervisor account to the
+            # currently configured username (handles the username changing
+            # between sessions without leaving an orphaned duplicate row).
+            await conn.execute(
+                "UPDATE users SET username = $1 WHERE role = 'supervisor' AND username <> $1",
+                sup_user,
+            )
+            users.append((sup_user, sup_pw, "supervisor", False))
+        else:
+            print("  DRIVEBOOK_SUPERVISOR_USERNAME/PASSWORD not set — skipping supervisor account (see .env.example)")
+
+        for username, pw, role, must_change in users:
             await conn.execute(
                 """
-                INSERT INTO users (username, password_hash, role, created_at)
-                VALUES ($1, $2, $3, now())
-                ON CONFLICT (username) DO NOTHING
+                INSERT INTO users (username, password_hash, role, must_change_password, created_at)
+                VALUES ($1, $2, $3, $4, now())
+                ON CONFLICT (username) DO UPDATE
+                SET password_hash = EXCLUDED.password_hash,
+                    role = EXCLUDED.role,
+                    must_change_password = EXCLUDED.must_change_password
                 """,
-                username, _hashpw(pw), role,
+                username, hash_password(pw), role, must_change,
             )
 
         # ---------- 100 instructors ----------
@@ -159,7 +171,7 @@ async def seed(force: bool = False, db_url: Optional[str] = None):
                 VALUES ($1, $2, 'instructor', $3, $4)
                 ON CONFLICT (username) DO NOTHING
                 """,
-                f"instructor_{i:03d}", _hashpw("instructor"),
+                f"instructor_{i:03d}", hash_password("instructor"),
                 i, base_time,
             )
 

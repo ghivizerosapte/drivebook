@@ -92,9 +92,27 @@ async def _client_ip(request: Request) -> str:
 
 
 async def require_admin(
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
     credentials: Optional[HTTPBasicCredentials] = Depends(security),
     x_admin_password: Optional[str] = Header(default=None, alias="X-Admin-Password"),
 ):
+    """Require admin role. Session (Bearer) is the primary path — this is
+    what the admin panel's username/password login uses. X-Admin-Password /
+    Basic Auth against DRIVEBOOK_ADMIN_PASSWORD is kept as a fallback for
+    external tooling (curl, load scripts)."""
+    pool = await get_pool()
+
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+        async with pool.acquire() as conn:
+            user = await svc.validate_session(conn, token)
+        if not user:
+            raise HTTPException(401, "Invalid or expired token")
+        if user["role"] != "admin":
+            raise HTTPException(403, "Admin role required")
+        return user
+
     expected = os.environ.get("DRIVEBOOK_ADMIN_PASSWORD", "drivebook-admin")
     if x_admin_password and secrets.compare_digest(x_admin_password, expected):
         return True
@@ -275,7 +293,13 @@ async def auth_login(
     return {
         "ok": True,
         "token": token,
-        "user": {"id": user["id"], "username": user["username"], "role": user["role"], "instructor_id": user["instructor_id"]},
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "role": user["role"],
+            "instructor_id": user["instructor_id"],
+            "must_change_password": user["must_change_password"],
+        },
     }
 
 
@@ -293,6 +317,31 @@ async def auth_logout(payload: AuthLogoutIn):
     pool = await get_pool()
     async with pool.acquire() as conn:
         await svc.revoke_session(conn, payload.token)
+    return {"ok": True}
+
+
+class ChangePasswordIn(BaseModel):
+    old_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+@router.post("/v1/auth/change-password")
+async def auth_change_password(
+    payload: ChangePasswordIn,
+    authorization: Optional[str] = Header(default=None),
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Authentication required", headers={"WWW-Authenticate": "Bearer"})
+    token = authorization[7:]
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        session_user = await svc.validate_session(conn, token)
+        if not session_user:
+            raise HTTPException(401, "Invalid or expired token")
+        ok = await svc.change_password(conn, session_user["user_id"], payload.old_password, payload.new_password)
+        if not ok:
+            raise HTTPException(401, "Current password is incorrect")
+        await svc.emit_audit(conn, session_user["user_id"], "change_password")
     return {"ok": True}
 
 
