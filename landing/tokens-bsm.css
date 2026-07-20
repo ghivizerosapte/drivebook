@@ -1,0 +1,30 @@
+/* Neutral + orange — colors only, referenced from bsm.co.uk screenshots.
+   Same component CSS as tokens-sky.css, different values only.
+   v3: accent is a punchier, more saturated orange (their buttons/progress
+   bar/accents are flat, fully-saturated orange, not a paler tint). And the
+   reference never uses gradients anywhere — every colored surface (buttons,
+   the "Learn/Earn" band) is flat — so --cta-band-bg here is a flat fill,
+   not a gradient like the Sky+Tangerine version.
+   v4: orange pushed more vivid/saturated again (less pastel, more punch),
+   and buttons use a small-radius rounded rect (--r-btn), not a full pill —
+   the reference's buttons are visibly squared off, not capsule-shaped. */
+:root{
+  --c-primary:#3A3D42;
+  --c-primary-dark:#26282C;
+  --c-accent:#F26A0E;
+  --c-accent-dark:#D85A00;
+  --c-tint-primary:#EDEEF1;
+  --c-tint-accent:#FDE6D0;
+  --c-bg:#F5F6F8;
+  --c-ink:#3A3D42;
+  --c-ink-soft:#8A8F98;
+  --paper:#FFFFFF;
+  --sun:#FFE9A8;
+  --shadow-sm:0 2px 8px rgba(58,61,66,0.07);
+  --shadow-md:0 10px 30px rgba(242,106,14,0.16);
+  --shadow-lg:0 22px 50px rgba(242,106,14,0.20);
+  --cta-band-bg:var(--c-primary);
+  --logo-mark-bg:var(--c-accent);
+  --meter-fill-bg:var(--c-accent);
+  --r-btn:8px;
+}

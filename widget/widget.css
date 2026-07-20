@@ -1,12 +1,15 @@
 /* DriveBook widget — navy + amber (road-sign), chosen for MVP.
+   Amber is pinned to the same orange used on the landing pages
+   (tokens-sky.css / tokens-bsm.css) so the widget doesn't visibly clash
+   when embedded — one orange across the whole booking flow.
    Alternates considered, revisit post-MVP: lime+asphalt (#C8E85A/#2B2D2F),
    teal+coral (#0F9E8E/#FF7A5C) — see PROGRESS.md §0. */
 :host, .db-root {
   --c-navy:        #1B3A5C;
   --c-navy-dark:   #142C46;
-  --c-amber:       #F2A93B;
-  --c-amber-lite:  #FDF0DA;
-  --c-amber-dark:  #D6901F;
+  --c-amber:       #F26A0E;
+  --c-amber-lite:  #FDE6D0;
+  --c-amber-dark:  #D85A00;
   --c-ink:         #22282E;
   --c-muted:       #6B7480;
   --c-line:        #E2E5E9;

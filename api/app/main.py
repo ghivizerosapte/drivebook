@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.db import close_pool, get_pool
@@ -55,6 +55,51 @@ async def root():
     if landing_index.exists():
         return FileResponse(landing_index)
     return RedirectResponse(url="/book", status_code=302)
+
+
+ROBOTS_TXT = """\
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: *
+Allow: /
+"""
+
+
+@app.get("/robots.txt")
+async def robots_txt():
+    # Best-effort: disallows known AI-training/crawler user agents while
+    # leaving the site open to regular search engines. A scraper ignoring
+    # robots.txt entirely won't be stopped by this — see the `noai` meta
+    # tag in landing/*.html for the same signal at the page level.
+    return PlainTextResponse(ROBOTS_TXT)
 
 
 @app.get("/book")

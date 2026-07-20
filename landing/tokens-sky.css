@@ -1,0 +1,24 @@
+/* Sky + Tangerine — primary palette (approved). See PROGRESS.md §0.
+   --c-accent is pinned to the same orange as tokens-bsm.css and the
+   widget (widget.css --c-amber) — one orange across the whole product,
+   not three near-misses. */
+:root{
+  --c-primary:#1E88C7;
+  --c-primary-dark:#16699C;
+  --c-accent:#F26A0E;
+  --c-accent-dark:#D85A00;
+  --c-tint-primary:#DCEEFA;
+  --c-tint-accent:#FDE6D0;
+  --c-bg:#F5FAFD;
+  --c-ink:#17303D;
+  --c-ink-soft:#587A8C;
+  --paper:#FFFFFF;
+  --sun:#FFE9A8;
+  --shadow-sm:0 2px 8px rgba(23,48,61,0.07);
+  --shadow-md:0 10px 30px rgba(30,136,199,0.16);
+  --shadow-lg:0 22px 50px rgba(30,136,199,0.20);
+  --cta-band-bg:linear-gradient(120deg, var(--c-primary), var(--c-primary-dark) 55%, var(--c-accent));
+  --logo-mark-bg:linear-gradient(135deg, var(--c-primary), var(--c-accent));
+  --meter-fill-bg:linear-gradient(90deg, var(--c-primary), var(--c-accent));
+  --r-btn:999px;
+}

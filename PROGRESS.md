@@ -1,25 +1,46 @@
 # DriveBook — PROGRESS.md
-> Последнее обновление: 2026-07-20 (сессия 3)
+> Последнее обновление: 2026-07-20 (сессия 4)
 
 ---
 
 ## 0. Цветовая палитра
 
-**Выбрано для MVP — Option D, navy + amber (road-sign):**
-`primary #1B3A5C` (dark navy) · `accent #F2A93B` (amber, CTA) ·
-`bg #F5F7FA` · `ink #22282E`. Применена во всех трёх местах: `widget/widget.css`,
-`landing/landing.css`, `admin/index.html` — переменные переименованы
-`--c-orange*` → `--c-amber*` (не просто перекрашены, чтобы имя не врало).
+**Сессия 4 — landing полностью перерисован, палитра navy+amber на landing
+заменена.** Текущее состояние: **два параллельных лендинга**, один и тот же
+контент/структура/анимации, разные цветовые токены:
 
-**Правило контраста**: amber используется для заливок/бордеров/CTA-фонов,
-navy — для текста (amber-текст на белом фоне читается плохо, ~2:1). Кнопки
-это делают буквально: amber-фон + navy-текст, вместо старого белого текста.
-Футер landing — сплошная navy-полоса (не просто тон фона), это единственное
-место, где второй цвет палитры получает настоящий, а не текстовый, акцент.
+| Файл | Палитра | Статус |
+|------|---------|--------|
+| `landing/index.html` + `landing/tokens-sky.css` | **Sky + Tangerine** — `primary #1E88C7` · `accent #F26A0E` · `bg #F5FAFD` · `ink #17303D` | основной, показан владельцу |
+| `landing/index-bsm.html` + `landing/tokens-bsm.css` | **Neutral + orange**, цвета взяты только со скриншотов bsm.co.uk (структура/контент НЕ копировались, только цвет) — `primary #3A3D42` (мягкий серый, НЕ чёрный/коричневый) · `accent #F26A0E` · `bg #F5F6F8` | запасной вариант / MVP для другого клиента |
 
-**Отклонённые варианты — рассмотреть после MVP при полном ребрендинге:**
-- Option B, lime + asphalt: `accent #C8E85A` · `primary #2B2D2F` · `bg #F7F9F1` · `ink #1D1E1F`
-- Option C, teal + coral: `primary #0F9E8E` · `accent #FF7A5C` · `bg #F4FAF9` · `ink #1C3532`
+**Accent (`#F26A0E`) теперь один и тот же во ВСЕХ поверхностях продукта** —
+намеренное решение сессии 4, не только лендинг:
+- `landing/tokens-sky.css` — `--c-accent`
+- `landing/tokens-bsm.css` — `--c-accent`
+- `widget/widget.css` — `--c-amber` (виджет монтируется живым внутри лендинга,
+  разный оранжевый бросался в глаза сразу же)
+
+`admin/index.html` **пока не тронут** — там всё ещё старый amber `#F2A93B`
+(из сессии 3). Это известное расхождение, не критично (admin — внутренний
+инструмент, не потребительский), но стоит выровнять при следующей правке
+admin-панели.
+
+**Архитектура токенов**: `landing/landing.css` — один файл component-CSS,
+ничего не хардкодит по цвету (всё через `var(--c-*)`); `tokens-sky.css` /
+`tokens-bsm.css` — только `:root{...}` с значениями, подключаются `<link>`
+до `landing.css`. Помимо base-токенов есть шейп/спец-токены, которые тоже
+различаются по палитре, а не просто цвет:
+- `--r-btn` — радиус кнопок: `999px` (пилюля) у sky, `8px` (закруглённый
+  прямоугольник) у bsm — у реального BSM кнопки не капсулы.
+- `--cta-band-bg`, `--logo-mark-bg`, `--meter-fill-bg` — у sky это градиенты
+  (`linear-gradient(...)`), у bsm — плоская заливка. Причина: на bsm.co.uk
+  нет ни одного градиента нигде (кнопки, полосы — везде плоский цвет);
+  для sky градиент — осознанный, отдельный выбор, не тронут.
+
+**Ранее выбранная (сессия 3) navy+amber ещё жива в `admin/index.html`.**
+Отклонённые/архивные варианты (lime+asphalt, teal+coral, исходный
+navy+amber) — см. историю в git, не дублирую здесь.
 
 ---
 
@@ -97,45 +118,67 @@ T&C-блок под молдавское законодательство, `api(
 **Сессия 3**: все `--c-orange*` → `--c-amber*` (навы+амбер, см. §0); несколько
 `color: #fff` на amber-фоне заменены на `var(--c-navy)` для контраста.
 
-### 1.3 NEW — Лендинг (`landing/`)
+**Сессия 4**: `--c-amber`/`--c-amber-dark`/`--c-amber-lite` перекрашены в
+единый `#F26A0E`/`#D85A00`/`#FDE6D0` — тот же accent, что у обоих лендингов
+(см. §0). `widget/widget.js` не менялся. Cache-buster в обоих
+`landing/index*.html` (`?v=3.0` → `?v=3.1`) — без этого браузеры держали
+старый `widget.css` в кеше и оранжевый визуально не совпадал с лендингом
+даже после правки токенов.
 
-Мобилфёрст `landing/index.html` + `landing/landing.css`, структура по образцу
-bsm.co.uk (референс дал скриншоты — сам сайт не фетчился, 403), но своя
-палитра и контент под Молдову:
-- Header: логотип PermisPro (navy), RO/RU-переключатель, "Контакты", "Войти" → `/admin`.
-- Hero: navy→amber градиентный круг с SVG-рулём, заголовок/подзаголовок,
-  2 CTA, 3 фичи-чипа.
-- Секция бронирования: **живой** `DriveBookWidget.mount()` внутри карточки
-  (не iframe) — переиспользует `/widget/widget.js`.
-- "Так обучаешься с PermisPro" — 4 шага под молдавское лицензирование
-  (запись онлайн → теория → практика → экзамен в ASP).
-- Бар-мостик "Ты инструктор? → /admin".
-- Footer: navy-полоса, about, адрес/телефон/email (**плейсхолдеры в `[ ]`,
-  см. Приоритет 3**), соцсети FB/IG/TikTok (href="#", тоже плейсхолдер),
-  3 колонки ссылок.
-- Плавающая FAB-кнопка (Telegram/WhatsApp/Viber), разворачивается по клику.
+### 1.3 Лендинг (`landing/`) — полностью перерисован в сессии 4
 
-**`api/app/main.py`**: `/` теперь отдаёт `landing/index.html` (раньше —
-редирект на `/book`); добавлен `app.mount("/landing", ...)`. `/book`,
-`/admin`, `/widget` не менялись.
+Версия сессии 3 (структура по мотивам bsm.co.uk, но так и не сверенная
+с реальным сайтом — фетч давал 403) **заменена целиком**. Новая структура
+скопирована по контенту/анимациям/mobile-first-подходу с независимого
+референса `permispro-mobile-first.html` (тёплый, "менее пугающий" стиль:
+confidence-card с барометром эмоций, road-timeline вместо статичных шагов),
+а не с bsm.co.uk — см. §0 про то, откуда взят только цвет.
 
-**Баги embed-контекста виджета (найдены и исправлены только благодаря
-живым скриншотам в браузере, не были бы пойманы текстовым ревью):**
-- `.db-root`/`.db-shell` задают `min-height: 100dvh` — на весь viewport, что
-  имеет смысл на отдельной `/book`, но внутри карточки на лендинге создавало
-  гигантский пустой отступ. Исправлено scoped-оверрайдом `.lp-widget-frame .db-root, .db-shell { min-height: auto; }`.
-- `.db-foot-cta` — `position: fixed` относительно viewport (не карточки):
-  кнопка "CONTINUĂ" залипала бы над всей остальной страницей при скролле.
-  Исправлено: `position: sticky` внутри `.lp-widget-frame`.
-- У виджета был свой RO/RU-переключатель — второй, независимый от
-  переключателя в шапке лендинга. Скрыт (`.lp-widget-frame .db-nav-lang { display: none; }`),
-  переключатель в шапке теперь **перемонтирует** виджет с новым `lang`
-  (публичного API для смены языка на лету у `widget.js` нет).
+**Два файла лендинга, один общий CSS:**
+- `landing/index.html` (Sky+Tangerine) + `landing/tokens-sky.css`
+- `landing/index-bsm.html` (Neutral+orange) + `landing/tokens-bsm.css`
+- `landing/landing.css` — общий для обоих, ни одного хардкод-цвета, всё
+  через `var(--c-*)` и палитро-специфичные токены (см. §0)
 
-**Иллюстрация авто на карточке "Так обучаешься"**: на десктопе была
-задана фиксированным `aspect-ratio: 4/5` независимо от высоты списка шагов
-слева — оставляла пустое место снизу. Исправлено: `align-items: stretch`
-на гриде + `aspect-ratio: auto` на карточке.
+**Порядок секций (сознательное решение — "виджет вторым скроллом"):**
+nav → hero (confidence-card: барометр эмоций + счётчики) → **секция
+бронирования с живым `DriveBookWidget.mount()`** → stats-strip → process
+(road-timeline, 4 шага, scroll-driven car-marker) → instructors (3
+карточки-плейсхолдеры) → testimonial (плейсхолдер) → cta-band → instructor-bar
+("Ты инструктор? → /admin") → footer → mobile sticky tap-bar → FAB
+(Telegram/WhatsApp/Viber).
+
+**Баг найден и исправлен при вёрстке (не был бы пойман без раскладки в
+браузере): `.nav-links`** — слайд-ин мобильное меню обязано быть DOM-siblings
+у `<nav>`, а не вложено в `.nav-inner` — у `.nav` есть `backdrop-filter`,
+который создаёт containing block для `position: fixed`-потомков, так что
+вложенный drawer обрезался бы по рамке хедера вместо всего viewport. Из-за
+этого тот же элемент нельзя было переиспользовать для десктопной инлайн-навигации
+через один медиа-запрос (так было в референсе и в первой версии — desktop
+ломался). Решение: два отдельных элемента — `.nav-links` (мобильный drawer,
+fixed, sibling) и `.nav-links-desktop` (обычный inline, только `display`
+переключается по media query).
+
+**Embed-контекст виджета** — тот же паттерн, что в сессии 3, перенесён на
+новый контейнер `.widget-frame`: `.db-root`/`.db-shell { min-height: auto }`,
+`.db-foot-cta { position: sticky }`, `.db-nav-lang { display: none }` (у
+лендинга свой RO/RU-переключатель в шапке, перемонтирует виджет через
+`DriveBookWidget.mount()` заново — публичного API смены языка на лету нет).
+
+**`api/app/main.py`**: добавлен `GET /robots.txt` — `Disallow` для известных
+AI-краулеров (GPTBot, ClaudeBot, CCBot, Google-Extended, PerplexityBot,
+Bytespider, anthropic-ai и т.д.), остальным `Allow: /`. Плюс
+`<meta name="robots" content="noai, noimageai">` в обоих `landing/index*.html`.
+Best-effort — не блокирует скрейперы, игнорирующие robots.txt.
+
+**Известный гэп**: `admin/index.html` не тронут, там всё ещё amber `#F2A93B`
+из сессии 3 — не совпадает с новым `#F26A0E`. Не критично (внутренний
+инструмент), но стоит выровнять при следующей правке admin.
+
+**Плейсхолдеры, не заполненные в сессии 4** (как и раньше в §Приоритет 3):
+адрес/телефон/email в футере, соцсети (`href="#"`), FAB-ссылки
+(t.me/wa.me/viber — заглушки), 3 карточки инструкторов и testimonial —
+демо-контент, не реальные данные.
 
 ### 1.4 Admin-панель (`admin/index.html`)
 
@@ -184,7 +227,8 @@ bsm.co.uk (референс дал скриншоты — сам сайт не �
 | `4630905` | admin-панель переписана как role-based портал |
 | `9de3c58` | синхронизация AGENTS.md/Makefile/widget-AGENTS.md/PROGRESS.md |
 | `931af4e` | лендинг `landing/` добавлен, `/` отдаёт его вместо редиректа на `/book` |
-| *(этот коммит)* | навy+amber палитра везде; фикс require_admin (Bearer-сессии); форс-смена пароля + `/v1/auth/change-password`; supervisor через `.env`/`DRIVEBOOK_SUPERVISOR_*`; фиксы embed-контекста виджета (100dvh, position:fixed, двойной RO/RU); фикс `[object Object]` в admin; car-illustration sizing |
+| `16e16d6` | навy+amber палитра везде; фикс require_admin (Bearer-сессии); форс-смена пароля + `/v1/auth/change-password`; supervisor через `.env`/`DRIVEBOOK_SUPERVISOR_*`; фиксы embed-контекста виджета (100dvh, position:fixed, двойной RO/RU); фикс `[object Object]` в admin; car-illustration sizing |
+| *(этот коммит)* | сессия 4 — лендинг перерисован (Sky+Tangerine `landing/index.html` + Neutral+orange `landing/index-bsm.html`, общий `landing/landing.css`, разделённые токены `tokens-sky.css`/`tokens-bsm.css`); единый accent `#F26A0E` в обоих лендингах и `widget/widget.css`; `GET /robots.txt` + `noai`-мета; фикс containing-block бага в моб. навигации |
 
 ---
 
@@ -208,9 +252,15 @@ make seed   # уже включает --force
 6. Проверить `https://<app>.railway.app/` (лендинг), `/book`, `/admin`
 
 ### Приоритет 3 — заполнить плейсхолдеры лендинга перед показом клиентам
-- [ ] `landing/index.html`: адрес/телефон/email в футере (сейчас `[str. Exemplu 1]`, `[+373 XX XXX XXX]`, `[contact@permispro.md]`)
+Актуально для **обоих** файлов — `landing/index.html` и `landing/index-bsm.html`
+(один и тот же контент, правь в обоих или вынеси в общий partial):
+- [ ] адрес/телефон/email в футере (сейчас `[str. Exemplu 1]`, `[+373 XX XXX XXX]`, `[contact@permispro.md]`)
 - [ ] Facebook/Instagram/TikTok — реальные ссылки вместо `href="#"`
 - [ ] Telegram/WhatsApp/Viber в плавающей FAB-кнопке — реальные `t.me/…`, `wa.me/…`, `viber://…`
+- [ ] 3 карточки инструкторов (Andrei V./Maria C./Dumitru R.) и testimonial
+      (Elena T.) — демо-данные, заменить на реальных людей
+- [ ] `admin/index.html` всё ещё на старом amber `#F2A93B` — выровнять
+      с `#F26A0E`, когда будет правка admin-панели (см. §0, §1.3)
 
 ### Приоритет 4 — мелкие улучшения UX
 - [ ] Экран подтверждения: номер телефона инструктора (если хотим)
@@ -255,9 +305,10 @@ make seed
 
 # 6. Запустить сервер
 make run
-# → http://127.0.0.1:8100/        — лендинг (PermisPro)
-# → http://127.0.0.1:8100/book    — виджет бронирования отдельно
-# → http://127.0.0.1:8100/admin   — панель администратора
+# → http://127.0.0.1:8100/                       — лендинг, Sky+Tangerine (основной)
+# → http://127.0.0.1:8100/landing/index-bsm.html  — тот же лендинг, Neutral+orange
+# → http://127.0.0.1:8100/book                    — виджет бронирования отдельно
+# → http://127.0.0.1:8100/admin                   — панель администратора
 ```
 
 ### Учётные данные
