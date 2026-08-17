@@ -80,53 +80,25 @@ uvicorn app.main:app --host 127.0.0.1 --port 8100
 
 ---
 
-## Agent orchestration (local delegation)
+## Agent workflow
 
-You (Claude Code, Sonnet via Pro) are the sole "thinking" loop on this project.
-You plan, you decide, you verify. You have one delegate: **local Qwen**, via a wrapper script.
+Claude Code is the sole "thinking" loop on this project: you plan, decide,
+verify, and do the work yourself. There is no local worker/delegate.
 
-**Script path:** `~/scripts/worker.py` (fallback: `~/Downloads/worker.py` if not yet moved)
+### Quality discipline
 
-### Calling the worker
+- **Align before acting**: for anything non-trivial, first summarize how you understood
+  the task + the plan + risks, and wait for confirmation before writing code.
+- **Vertical slices, then stop**: after each slice show the diff and wait — don't start
+  the next `PLAN.md` item on your own.
+- **Evidence before "done"** (hard-rule 8): every code change is backed by real output —
+  `git diff --stat`, a run, a k6 summary, or a screenshot. A change isn't done until you've
+  seen the actual diff of the file.
+- **Never skip stage readiness criteria** (hard-rule 6) or fold stages into one mega-commit
+  (hard-rule 7).
 
-```bash
-python3 ~/scripts/worker.py "precise instruction" \
-  --files api/app/main.py \
-  --save-to drivebook/progress-notes.md
-```
+### Escalation (manual, user-mediated)
 
-Flags: `--files` (context files, project paths or vault filenames), `--search KEYWORD`
-(grep the Obsidian vault instead), `--stdin` (pipe context in), `--save-to FILE`
-(append result to `$OBSIDIAN_VAULT/FILE` with timestamp; `--overwrite` replaces
-instead of appending), `--tokens N` (response cap, default 4096).
-
-### Golden rule
-
-Qwen executes exactly what's written — no initiative, no reliable self-verification.
-It has previously reported success on tasks where files were never actually written.
-
-**Every worker.py call for code changes MUST be followed by a manual check before
-the step counts as done** — this satisfies rule 8 (evidence required) above:
-
-```bash
-git diff --stat
-cat <changed_file>
-```
-
-If nothing changed or the result is wrong: either fix it yourself, or re-issue the
-task to Qwen with a more precise target (exact file, exact function, exact expected
-output). Never mark a `PLAN.md` stage complete based on Qwen's own report alone.
-
-### Scope for delegation
-
-Delegate to Qwen: mechanical/rote code changes with a clear, narrow spec (add a
-field, write a migration matching an existing pattern, write tests for a function
-you specify). Do NOT delegate: stage planning, architecture calls, anything touching
-the hard rules above, race-safety logic, or migration ordering — do those yourself.
-
-### Escalation to Fable/Opus (manual, user-mediated)
-
-You have no direct API access to Fable or Opus — they're used manually by the user
-in claude.ai. Suggest escalation (don't block on it) for: architecture decisions with
-lasting consequences, or final review before marking a major stage/PLAN.md milestone
-done. Routine work stays with you + Qwen.
+No direct API access to other models — the user runs them in claude.ai. Suggest (don't
+block on) an escalation for architecture decisions with lasting consequences, or a final
+review before marking a major `PLAN.md` milestone done.
