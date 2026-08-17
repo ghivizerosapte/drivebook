@@ -102,6 +102,14 @@ async def robots_txt():
     return PlainTextResponse(ROBOTS_TXT)
 
 
+@app.get("/presentation")
+async def director_presentation():
+    presentation = LANDING_DIR / "presentation.html"
+    if presentation.exists():
+        return FileResponse(presentation)
+    return RedirectResponse(url="/", status_code=302)
+
+
 @app.get("/book")
 @app.get("/book/")
 async def hosted_book():
