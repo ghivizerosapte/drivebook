@@ -59,6 +59,31 @@ admin на `admin`/`admin`); сервер сейчас на `0.0.0.0:8100` дл�
 (валидация телефона в waitlist, step-иконки таймлайна, admin-суффикс
 «Navy & Amber» в `<title>`).
 
+### Деплой (вечер)
+
+**Прод живой**: https://permispro.onrender.com — Render free web service
+(Frankfurt) + Neon Postgres free (eu-central-1). Блюпринт `render.yaml`,
+старт: `migrate → seed --force → uvicorn` на `$PORT` (сид на каждом старте =
+слоты всегда свежие; брони при рестарте стираются — осознанно для демо).
+
+**Поверхности**: `/` лендинг, `/book`, `/admin`, `/presentation` (кнопка
+«Открыть демо-сайт», без сырого URL), `/health`.
+
+**Анти-сон**: UptimeRobot, монитор https://permispro.onrender.com/health
+каждые 5 мин — сервис не засыпает (750 бесплатных часов Render покрывают 24/7).
+
+**Учётки прода**: admin/admin (форс-смена), супервизор `supervizor07` (пароль
+только у владельца, задан в Render env).
+
+**Особенности пути**: GitHub-инцидент (17.08) не дал подключить Render GitHub
+App — реп временно **СДЕЛАН PUBLIC**, деплой по public-URL; автодеплоя нет,
+обновление = `git push` + кнопка Manual Deploy в Render.
+
+**TODO после демо**: (1) подключить Render GitHub App и вернуть реп в private;
+(2) ротировать пароль Neon (строка светилась в переписке) и обновить
+`DATABASE_URL` в Render; (3) при переходе в реальную эксплуатацию убрать
+`seed --force` из старта (иначе стирает реальные брони).
+
 ---
 
 ## 0. Цветовая палитра
