@@ -42,6 +42,10 @@ def normalize_md_phone(raw: str) -> str:
         national = digits[1:]
     else:
         national = digits.lstrip("+")
+    # `+373 0XXXXXXXX` / `373 0XXXXXXXX`: a stray trunk `0` left after the
+    # country code — drop it so `+373069123456` → `+37369123456`.
+    if len(national) == 9 and national.startswith("0"):
+        national = national[1:]
     if not MD_MOBILE_NATIONAL_RE.match(national):
         raise ValueError("Invalid Moldovan mobile number")
     return "+373" + national
@@ -57,17 +61,21 @@ class BookingIn(BaseModel):
     lang: str = Field(default="ro", max_length=5)
     notes: Optional[str] = Field(default=None, max_length=500)
     # Honeypot: must stay empty. Bots/autofillers fill it; humans never see it.
-    website: Optional[str] = Field(default=None, max_length=200)
+    # Named to look like an innocuous field (not "website", which browser
+    # autofill offers to real people).
+    contact_notes_x: Optional[str] = Field(default=None, max_length=200)
 
     @field_validator("student_phone")
     @classmethod
     def phone_ok(cls, v: str) -> str:
         return normalize_md_phone(v)
 
-    @field_validator("website")
+    @field_validator("contact_notes_x")
     @classmethod
-    def website_must_be_empty(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and v.strip():
+    def honeypot_must_be_empty(cls, v: Optional[str]) -> Optional[str]:
+        # Any non-empty string (whitespace-only included) means a bot filled it.
+        # Only "" and None are legitimate.
+        if v:
             raise ValueError("spam detected")
         return v
 

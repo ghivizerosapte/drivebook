@@ -483,15 +483,28 @@
     // (1) hide the sticky CTA while the widget section is clearly in view.
     var visObs = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        var over = entry.isIntersecting && entry.intersectionRatio >= 0.15;
+        var vh = window.innerHeight || document.documentElement.clientHeight;
+        var rect = entry.boundingClientRect;
+        // On short screens (iPhone SE, 667px) a tall section may never reach
+        // ratio 0.15, yet it still fills the viewport — so also hide the CTA
+        // when the centre of the screen sits inside the section.
+        var coversCenter = rect.top < vh * 0.5 && rect.bottom > vh * 0.5;
+        var over = (entry.isIntersecting && entry.intersectionRatio >= 0.15) || coversCenter;
         tapBar.classList.toggle("cta-over-widget", over);
       });
-    }, { threshold: [0, 0.15, 0.25, 0.5] });
+    }, { threshold: [0, 0.15] });
     visObs.observe(bookSection);
 
-    // (2) keep the widget anchored across orientationchange/resize while booking.
+    // (2) keep the widget anchored across a REAL orientation flip while booking.
+    // A bare `resize` fires on every mobile URL-bar collapse; re-anchoring on
+    // those steals the scroll. Track portrait/landscape and act only on a flip.
+    var portraitMQ = window.matchMedia("(orientation: portrait)");
+    var wasPortrait = portraitMQ.matches;
     function reAnchor() {
-      if (!inProcess) return;
+      var isPortrait = portraitMQ.matches;
+      var flipped = isPortrait !== wasPortrait;
+      wasPortrait = isPortrait;                 // keep tracked state fresh
+      if (!inProcess || !flipped) return;       // same orientation → ignore
       // Suppress the manual-scroll reset for the whole rotation transient: the
       // browser itself jumps to the top on orientationchange, and that jump is
       // not a user scroll-away, so it must not clear the "in process" flag.

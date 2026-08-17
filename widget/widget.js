@@ -681,7 +681,7 @@
             <input id="db-pickup" name="pickup" placeholder="${t(L, "pickupPlaceholder")}"
               autocomplete="street-address" />
           </div>
-          <input type="text" name="website" data-hp class="db-hp"
+          <input type="text" name="contact_notes_x" data-hp class="db-hp"
             tabindex="-1" autocomplete="off" aria-hidden="true" />
           <div class="db-field db-field-terms">
             <div class="db-terms-body" data-terms-body style="display:none">
@@ -698,7 +698,18 @@
       // Phone mask: live-format + normalize pasted input, cap at 8 national digits
       const phoneEl = body.querySelector("[data-phone]");
       phoneEl.addEventListener("input", () => {
+        // Preserve the caret: full-value rewrite would otherwise jump it to the
+        // end, breaking mid-string typing/deleting. Count digits left of the
+        // caret, reformat, then land the caret after that many digits.
+        const caret = phoneEl.selectionStart || 0;
+        const digitsLeft = (phoneEl.value.slice(0, caret).match(/\d/g) || []).length;
         phoneEl.value = phoneFormat(phoneNational(phoneEl.value));
+        let pos = 0, seen = 0;
+        while (pos < phoneEl.value.length && seen < digitsLeft) {
+          if (/\d/.test(phoneEl.value[pos])) seen++;
+          pos++;
+        }
+        phoneEl.setSelectionRange(pos, pos);
       });
 
       // Terms toggle
@@ -725,7 +736,7 @@
         // with a neutral message (don't hint at the trap).
         const hp = form.querySelector("[data-hp]");
         const tooFast = Date.now() - (state.contactOpenedAt || 0) < 3000;
-        if ((hp && hp.value.trim()) || tooFast) {
+        if ((hp && hp.value) || tooFast) {
           errEl.innerHTML = `<div class="db-error">${t(L, "formError")}</div>`;
           return;
         }
@@ -753,7 +764,7 @@
               slot_id: s.id,
               student_name: fd.get("student_name"),
               student_phone: phoneVal,
-              website: fd.get("website") || "",
+              contact_notes_x: fd.get("contact_notes_x") || "",
               notes: fd.get("pickup") || null,
               lesson_type: state.lessonType,
               source: state.source,
