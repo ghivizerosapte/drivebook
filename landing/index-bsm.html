@@ -458,6 +458,66 @@
   navBackdrop.addEventListener("click", closeMenu);
   navLinks.querySelectorAll("a").forEach(function (a) { a.addEventListener("click", closeMenu); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeMenu(); });
+
+  // ── booking UX: hide sticky CTA over widget · re-anchor on rotation ───────
+  // Real-device feedback: (1) the sticky "Rezervă o lecție" bar sits exactly
+  // where the thumb expects the widget's CONTINUĂ, so people mis-tap it; hide
+  // it while the widget section is meaningfully on screen. (2) rotating the
+  // phone scrolls the page to the top mid-booking; re-anchor the widget.
+  var bookSection = document.getElementById("rezerva");
+  var bookMount   = document.getElementById("widgetMount");
+  var tapBar      = document.querySelector(".mobile-tap-bar");
+  if (bookSection && tapBar) {
+    var inProcess = false;      // user is actively booking
+    var autoScroll = false;     // suppress flag-reset during our own scroll
+    var autoTimer = null, resizeTimer = null;
+
+    // "in process" = interacted with the widget (click/focus) OR advanced past
+    // the first screen (a CONTINUĂ click is itself a click inside the mount).
+    function markInProcess() { inProcess = true; }
+    if (bookMount) {
+      bookMount.addEventListener("click", markInProcess, true);
+      bookMount.addEventListener("focusin", markInProcess);
+    }
+
+    // (1) hide the sticky CTA while the widget section is clearly in view.
+    var visObs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var over = entry.isIntersecting && entry.intersectionRatio >= 0.15;
+        tapBar.classList.toggle("cta-over-widget", over);
+      });
+    }, { threshold: [0, 0.15, 0.25, 0.5] });
+    visObs.observe(bookSection);
+
+    // (2) keep the widget anchored across orientationchange/resize while booking.
+    function reAnchor() {
+      if (!inProcess) return;
+      // Suppress the manual-scroll reset for the whole rotation transient: the
+      // browser itself jumps to the top on orientationchange, and that jump is
+      // not a user scroll-away, so it must not clear the "in process" flag.
+      autoScroll = true;
+      clearTimeout(autoTimer);
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        // instant (not smooth) so the page doesn't visibly whip around;
+        // html{scroll-behavior:smooth} would otherwise animate this.
+        bookSection.scrollIntoView({ block: "start", behavior: "instant" });
+        autoTimer = setTimeout(function () { autoScroll = false; }, 300);
+      }, 200);
+    }
+    window.addEventListener("resize", reAnchor);
+    window.addEventListener("orientationchange", reAnchor);
+
+    // The widget exposes no close/callback (its ✕ only resets to step 1), so
+    // reset the "in process" flag when the user manually scrolls the widget
+    // far out of view — never during our own re-anchor scroll.
+    window.addEventListener("scroll", function () {
+      if (!inProcess || autoScroll) return;
+      var r = bookSection.getBoundingClientRect();
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      if (r.bottom < -vh * 0.5 || r.top > vh * 1.5) inProcess = false;
+    }, { passive: true });
+  }
 })();
 </script>
 </body>

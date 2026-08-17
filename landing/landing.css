@@ -237,8 +237,13 @@ footer{padding:32px 0; color:var(--c-ink-soft);}
   position:fixed; left:0; right:0; bottom:0; z-index:55; background:var(--paper); border-top:1px solid var(--c-tint-primary);
   padding:10px 16px; padding-bottom:calc(10px + env(safe-area-inset-bottom));
   box-shadow:0 -8px 24px rgba(23,48,61,0.10);
+  transition:transform .28s ease, opacity .28s ease;
 }
 .mobile-tap-bar .btn{width:100%;}
+/* While the booking widget is on screen the sticky CTA sits right where the
+   thumb expects the widget's own CONTINUĂ button — hide it so people don't
+   tap it by mistake and lose their place (JS toggles .cta-over-widget). */
+.mobile-tap-bar.cta-over-widget{ transform:translateY(110%); opacity:0; pointer-events:none; }
 @media (min-width:880px){ .mobile-tap-bar{display:none;} body{padding-bottom:0;} }
 
 /* ===== floating messaging FAB — sits above the mobile tap bar ===== */
