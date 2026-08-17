@@ -211,11 +211,11 @@
     color:var(--orange-deep);display:grid;place-items:center;font-weight:800;font-size:13px}
   .need-item p{font-size:14.5px;font-weight:600}
   .demo{margin-top:16px;padding:20px 18px;border-radius:18px;text-align:center;
-    border:2px dashed var(--orange);background:var(--orange-tint)}
+    border:2px solid var(--orange);background:var(--orange-tint)}
   .demo .lbl{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
     color:var(--orange-deep)}
-  .demo .link{margin-top:8px;font-size:17px;font-weight:800;color:var(--ink);
-    letter-spacing:-.01em}
+  .demo .link{display:inline-block;margin-top:8px;font-size:20px;font-weight:800;color:var(--ink);
+    letter-spacing:-.01em;text-decoration:none}
   .demo .hint{margin-top:6px;font-size:12.5px;color:var(--muted)}
 
   /* ---- final CTA ---- */
@@ -499,8 +499,8 @@
     </p>
     <div class="demo">
       <div class="lbl">Живое демо</div>
-      <div class="link">[ ссылка будет здесь ]</div>
-      <div class="hint">Заменим на рабочую ссылку сразу после развёртывания на вашем домене</div>
+      <a class="link" href="https://permispro.onrender.com" target="_blank" rel="noopener">https://permispro.onrender.com</a>
+      <div class="hint">Откройте с телефона — запишитесь на урок за 2 минуты</div>
     </div>
   </section>
 
