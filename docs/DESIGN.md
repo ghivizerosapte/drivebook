@@ -134,7 +134,7 @@ paths:
 
 | Area | Capability |
 |------|------------|
-| Auth | HTTP Basic / `X-Admin-Password` vs `schools.admin_password_hash` (env fallback `DRIVEBOOK_ADMIN_PASSWORD`) |
+| Auth | Primary: Bearer session token (`users`/`sessions` tables, argon2 hashes, roles admin/supervisor/instructor, `must_change_password` forces reset on first login). Fallback: HTTP Basic / `X-Admin-Password` vs env `DRIVEBOOK_ADMIN_PASSWORD` for external scripts |
 | Instructors | list, toggle active, create test instructor + generate 14d schedule |
 | Bookings | list, cancel, filter by source |
 | Time sim | create booking with `starts_at = now()+5m` / past date for reminder testing |

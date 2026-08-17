@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="DriveBook API",
+    title="PermisPro API",
     version="2.0.0",
     description="Independent multi-channel booking module — Chișinău",
     lifespan=lifespan,
