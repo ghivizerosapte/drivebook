@@ -11,18 +11,18 @@
 :root{
   --c-primary:#3A3D42;
   --c-primary-dark:#26282C;
-  --c-accent:#F26A0E;
-  --c-accent-dark:#D85A00;
+  --c-accent:#F9812A;
+  --c-accent-dark:#E96607;
   --c-tint-primary:#EDEEF1;
-  --c-tint-accent:#FDE6D0;
+  --c-tint-accent:#FEECDE;
   --c-bg:#F5F6F8;
-  --c-ink:#3A3D42;
+  --c-ink:#111417;
   --c-ink-soft:#8A8F98;
   --paper:#FFFFFF;
   --sun:#FFE9A8;
   --shadow-sm:0 2px 8px rgba(58,61,66,0.07);
-  --shadow-md:0 10px 30px rgba(242,106,14,0.16);
-  --shadow-lg:0 22px 50px rgba(242,106,14,0.20);
+  --shadow-md:0 10px 30px rgba(249,129,42,0.16);
+  --shadow-lg:0 22px 50px rgba(249,129,42,0.20);
   --cta-band-bg:var(--c-primary);
   --logo-mark-bg:var(--c-accent);
   --meter-fill-bg:var(--c-accent);

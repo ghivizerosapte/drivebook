@@ -1,16 +1,20 @@
 /* Sky + Tangerine — primary palette (approved). See PROGRESS.md §0.
    --c-accent is pinned to the same orange as tokens-bsm.css and the
    widget (widget.css --c-amber) — one orange across the whole product,
-   not three near-misses. */
+   not three near-misses. Value #F9812A is the EXACT bsm.co.uk primary-CTA
+   orange (their "GET PRICES" button, computed rgb(249,129,42)); --c-accent-dark
+   #E96607 is their own darker orange variant. --c-ink is near-black so text
+   on the orange fill (btn-primary, fab, nav-lang active) reads black, per
+   owner feedback ("blue-on-orange looked cheap; make the font black"). */
 :root{
   --c-primary:#1E88C7;
   --c-primary-dark:#16699C;
-  --c-accent:#F26A0E;
-  --c-accent-dark:#D85A00;
+  --c-accent:#F9812A;
+  --c-accent-dark:#E96607;
   --c-tint-primary:#DCEEFA;
-  --c-tint-accent:#FDE6D0;
+  --c-tint-accent:#FEECDE;
   --c-bg:#F5FAFD;
-  --c-ink:#17303D;
+  --c-ink:#111417;
   --c-ink-soft:#587A8C;
   --paper:#FFFFFF;
   --sun:#FFE9A8;
