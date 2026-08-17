@@ -14,6 +14,7 @@ from typing import Optional
 import asyncpg
 from dotenv import load_dotenv
 
+from app.config import asyncpg_kwargs
 from app.services import hash_password
 
 load_dotenv()  # picks up .env for DRIVEBOOK_SUPERVISOR_USERNAME/PASSWORD; no-op if absent
@@ -66,10 +67,9 @@ async def _run(mig_path: Path, conn: asyncpg.Connection):
 # ---------- seed ----------
 
 async def seed(force: bool = False, db_url: Optional[str] = None):
-    if db_url is None:
-        db_url = "postgresql://drivebook:drivebook@127.0.0.1:5433/drivebook?sslmode=disable"
-
-    pool = await asyncpg.create_pool(dsn=db_url)
+    # db_url=None -> settings.database_url, which honours the DATABASE_URL env
+    # var (Neon/Render) with a local fallback. sslmode is handled centrally.
+    pool = await asyncpg.create_pool(**asyncpg_kwargs(db_url))
     async with pool.acquire() as conn:
         # run all migrations
         print("Running migrations…")

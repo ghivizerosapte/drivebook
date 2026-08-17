@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import os
+import ssl as ssl_lib
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
 from pydantic_settings import BaseSettings
 
 
@@ -24,3 +27,47 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def asyncpg_kwargs(dsn: str | None = None) -> dict:
+    """Build kwargs for ``asyncpg.connect`` / ``asyncpg.create_pool``.
+
+    ``dsn`` overrides ``settings.database_url`` when given; otherwise the
+    single source of truth is ``settings.database_url``, which already reads
+    the ``DATABASE_URL`` env var (Neon/Render) with a local fallback.
+
+    Managed Postgres (Neon) hands out URLs like
+    ``postgresql://user:pass@host/db?sslmode=require``. asyncpg's parsing of
+    the libpq ``sslmode`` query parameter is version-dependent, so we strip it
+    (and other libpq-only ssl params) from the DSN and translate it into an
+    explicit ``ssl`` argument. Same code path works locally (sslmode=disable)
+    and on Neon (sslmode=require).
+    """
+    dsn = dsn or settings.database_url
+    parts = urlsplit(dsn)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    sslmode = query.pop("sslmode", None)
+    # libpq-only params asyncpg does not accept as query args
+    for k in ("sslrootcert", "sslcert", "sslkey", "sslpassword", "channel_binding"):
+        query.pop(k, None)
+    clean_dsn = urlunsplit(
+        (parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment)
+    )
+
+    kwargs: dict = {"dsn": clean_dsn}
+    if sslmode is None:
+        return kwargs
+    mode = sslmode.lower()
+    if mode == "disable":
+        kwargs["ssl"] = False
+    elif mode in ("allow", "prefer", "require"):
+        # encrypt without cert/hostname verification (libpq `require` semantics)
+        ctx = ssl_lib.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl_lib.CERT_NONE
+        kwargs["ssl"] = ctx
+    elif mode in ("verify-ca", "verify-full"):
+        kwargs["ssl"] = ssl_lib.create_default_context()
+    else:
+        kwargs["ssl"] = True
+    return kwargs

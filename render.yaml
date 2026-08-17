@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: permispro
+    runtime: python
+    region: frankfurt
+    plan: free
+    branch: main
+    # Build from repo root; app code lives in api/.
+    buildCommand: pip install -r api/requirements.txt
+    # migrate + seed --force + uvicorn on $PORT (see api/start.sh).
+    startCommand: cd api && bash start.sh
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      # External Postgres (Neon). Paste the full URL incl. ?sslmode=require.
+      - key: DATABASE_URL
+        sync: false
+      # Supervisor bootstrap account (seed.py). Entered by hand.
+      - key: DRIVEBOOK_SUPERVISOR_USERNAME
+        sync: false
+      - key: DRIVEBOOK_SUPERVISOR_PASSWORD
+        sync: false

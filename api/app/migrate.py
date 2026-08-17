@@ -7,7 +7,7 @@ from pathlib import Path
 
 import asyncpg
 
-from app.config import settings
+from app.config import asyncpg_kwargs
 
 MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 
@@ -33,7 +33,7 @@ async def migrate() -> list[str]:
     if not files:
         raise SystemExit(f"No migrations in {MIGRATIONS_DIR}")
 
-    conn = await asyncpg.connect(settings.database_url)
+    conn = await asyncpg.connect(**asyncpg_kwargs())
     applied: list[str] = []
     try:
         await ensure_migrations_table(conn)
