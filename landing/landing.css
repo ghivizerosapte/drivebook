@@ -58,7 +58,10 @@ a:focus-visible, button:focus-visible, select:focus-visible{ outline:2.5px solid
 .logo-mark{width:28px; height:28px; border-radius:9px; background:var(--logo-mark-bg); flex:none;}
 .nav-right{display:flex; align-items:center; gap:12px; margin-left:auto;}
 .nav-links-desktop{display:none;}
-.nav-toggle{display:flex; flex-direction:column; gap:4px; background:none; border:none; padding:10px; margin:-10px;}
+/* padding+negative margin enlarges the tap target without shifting layout;
+   right margin stays 0 so the rightmost nav item can't poke past the
+   container edge and create horizontal overflow on narrow viewports. */
+.nav-toggle{display:flex; flex-direction:column; gap:4px; background:none; border:none; padding:10px; margin:-10px 0 -10px -10px;}
 .nav-toggle span{width:20px; height:2px; background:var(--c-ink); border-radius:2px; transition:transform .2s ease, opacity .2s ease;}
 .nav-links{
   position:fixed; inset:0 0 0 30%; z-index:70; background:var(--paper);
