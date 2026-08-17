@@ -433,6 +433,48 @@
 .db-field input:focus, .db-field textarea:focus { border-color: var(--c-amber); }
 .db-field textarea { resize: none; }
 
+/* ── Phone field with fixed +373 prefix ─────────────────────── */
+.db-phone-wrap {
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid var(--c-line);
+  border-radius: 10px;
+  background: var(--c-card);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.db-phone-wrap:focus-within { border-color: var(--c-amber); }
+.db-phone-prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-muted);
+  background: var(--c-bg);
+  border-right: 1.5px solid var(--c-line);
+  user-select: none;
+}
+.db-phone-wrap input {
+  flex: 1;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  letter-spacing: 0.04em;
+}
+.db-phone-wrap input:focus { border: none !important; }
+
+/* ── Honeypot: off-screen but visible to bots/autofillers ───── */
+.db-hp {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* ── Terms & Conditions block ───────────────────────────────── */
 .db-field-terms { gap: 8px; }
 .db-terms-body {

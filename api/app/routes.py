@@ -20,8 +20,31 @@ from app import services as svc
 
 router = APIRouter()
 TZ = ZoneInfo("Europe/Chisinau")
-PHONE_RE = re.compile(r"^\+?[0-9()\-\s]{8,20}$")
+# Normalized Moldovan mobile: +373 followed by 8 national digits, first is 6 or 7.
+MD_MOBILE_NATIONAL_RE = re.compile(r"^[67]\d{7}$")
 security = HTTPBasic(auto_error=False)
+
+
+def normalize_md_phone(raw: str) -> str:
+    """Normalize a Moldovan mobile number to the canonical `+373XXXXXXXX` form.
+
+    Accepts local (`0XXXXXXXX`), country-prefixed (`373...`), and E.164
+    (`+373...`) inputs with arbitrary spaces / dashes / parens / dots. The
+    national part must be exactly 8 digits, the first of which is 6 or 7.
+    Raises ValueError on anything else.
+    """
+    digits = re.sub(r"[\s\-().]", "", raw or "")
+    if digits.startswith("+373"):
+        national = digits[4:]
+    elif digits.startswith("373"):
+        national = digits[3:]
+    elif digits.startswith("0"):
+        national = digits[1:]
+    else:
+        national = digits.lstrip("+")
+    if not MD_MOBILE_NATIONAL_RE.match(national):
+        raise ValueError("Invalid Moldovan mobile number")
+    return "+373" + national
 
 
 class BookingIn(BaseModel):
@@ -33,13 +56,19 @@ class BookingIn(BaseModel):
     source: str = Field(default="site", max_length=40)
     lang: str = Field(default="ro", max_length=5)
     notes: Optional[str] = Field(default=None, max_length=500)
+    # Honeypot: must stay empty. Bots/autofillers fill it; humans never see it.
+    website: Optional[str] = Field(default=None, max_length=200)
 
     @field_validator("student_phone")
     @classmethod
     def phone_ok(cls, v: str) -> str:
-        v = v.strip()
-        if not PHONE_RE.match(v):
-            raise ValueError("Invalid phone")
+        return normalize_md_phone(v)
+
+    @field_validator("website")
+    @classmethod
+    def website_must_be_empty(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip():
+            raise ValueError("spam detected")
         return v
 
     @field_validator("student_name")

@@ -36,7 +36,8 @@
       instructor: "Instructor",
       zone: "Sector",
       searchPlaceholder: "Caută instructor…",
-      phoneInvalid: "Introduceți un număr de telefon valid (min. 8 cifre).",
+      phoneInvalid: "Număr de mobil invalid. Format: +373 6X XXX XXX sau 7X XXX XXX.",
+      formError: "Ceva nu a funcționat. Vă rugăm să reîncercați.",
       termsLabel: "Am citit și accept ",
       termsLink: "termenii și condițiile",
       termsRequired: "Trebuie să acceptați termenii pentru a continua.",
@@ -76,7 +77,8 @@
       instructor: "Инструктор",
       zone: "Район",
       searchPlaceholder: "Поиск инструктора…",
-      phoneInvalid: "Введите корректный номер телефона (мин. 8 цифр).",
+      phoneInvalid: "Неверный мобильный номер. Формат: +373 6X XXX XXX или 7X XXX XXX.",
+      formError: "Что-то пошло не так. Пожалуйста, попробуйте снова.",
       termsLabel: "Я прочитал и принимаю ",
       termsLink: "условия и положения",
       termsRequired: "Необходимо принять условия для продолжения.",
@@ -141,6 +143,27 @@
 
   // Day key "2026-07-25"
   const dayKey = iso => iso.slice(0, 10);
+
+  // ── Moldovan mobile mask (+373 6X/7X XXX XXX) ─────────────────────────────
+  // Extract the 8-digit national part from any pasted/typed form:
+  //   069123456 · 373 69 123 456 · +37369123456 · 69123456
+  function phoneNational(raw) {
+    let d = (raw || "").replace(/\D/g, "");
+    if (d.startsWith("373")) d = d.slice(3);   // country code
+    if (d.startsWith("0")) d = d.slice(1);     // trunk prefix
+    return d.slice(0, 8);                       // never more than 8 national digits
+  }
+  // Group national digits as "69 123 456"
+  function phoneFormat(nat) {
+    let out = nat.slice(0, 2);
+    if (nat.length > 2) out += " " + nat.slice(2, 5);
+    if (nat.length > 5) out += " " + nat.slice(5, 8);
+    return out;
+  }
+  // Valid iff exactly 8 digits and first is 6 or 7
+  function phoneValid(nat) {
+    return /^[67]\d{7}$/.test(nat);
+  }
 
   // Clock SVG icon
   const CLOCK_SVG = `<svg class="db-slot-icon" viewBox="0 0 24 24" fill="none"
@@ -612,6 +635,8 @@
     function renderContact() {
       currentView = "contact";
       const L = state.lang;
+      // Min-fill-time anti-bot: remember when this screen opened.
+      state.contactOpenedAt = Date.now();
       setProgress(5);
       setNav(() => state.fromInstructor ? renderSlotPicker() : renderBest(), true);
       clearFoot();
@@ -644,15 +669,20 @@
           </div>
           <div class="db-field">
             <label for="db-phone">${t(L, "phone")}</label>
-            <input id="db-phone" name="student_phone" required type="tel"
-              inputmode="numeric" pattern="[+]?[0-9 \\-\\(\\)]{8,20}"
-              placeholder="+373" autocomplete="tel" />
+            <div class="db-phone-wrap">
+              <span class="db-phone-prefix">+373</span>
+              <input id="db-phone" name="student_phone_national" required type="tel"
+                inputmode="numeric" placeholder="6X XXX XXX"
+                autocomplete="tel-national" data-phone />
+            </div>
           </div>
           <div class="db-field">
             <label for="db-pickup">${t(L, "pickup")}</label>
             <input id="db-pickup" name="pickup" placeholder="${t(L, "pickupPlaceholder")}"
               autocomplete="street-address" />
           </div>
+          <input type="text" name="website" data-hp class="db-hp"
+            tabindex="-1" autocomplete="off" aria-hidden="true" />
           <div class="db-field db-field-terms">
             <div class="db-terms-body" data-terms-body style="display:none">
               ${t(L, "termsText")}
@@ -664,6 +694,12 @@
           </div>
           <div data-err></div>
         </form>`;
+
+      // Phone mask: live-format + normalize pasted input, cap at 8 national digits
+      const phoneEl = body.querySelector("[data-phone]");
+      phoneEl.addEventListener("input", () => {
+        phoneEl.value = phoneFormat(phoneNational(phoneEl.value));
+      });
 
       // Terms toggle
       body.querySelector("[data-terms-toggle]").addEventListener("click", e => {
@@ -685,13 +721,22 @@
         const errEl = body.querySelector("[data-err]");
         errEl.innerHTML = "";
 
-        // Front-end phone validation (numeric + length)
-        const phoneVal = form.querySelector("[name=student_phone]").value.trim();
-        const phoneDigits = phoneVal.replace(/[^\d]/g, "");
-        if (phoneDigits.length < 8) {
+        // Anti-bot: honeypot filled OR form submitted implausibly fast → refuse
+        // with a neutral message (don't hint at the trap).
+        const hp = form.querySelector("[data-hp]");
+        const tooFast = Date.now() - (state.contactOpenedAt || 0) < 3000;
+        if ((hp && hp.value.trim()) || tooFast) {
+          errEl.innerHTML = `<div class="db-error">${t(L, "formError")}</div>`;
+          return;
+        }
+
+        // Moldovan mobile validation: exactly 8 national digits, first 6 or 7
+        const national = phoneNational(form.querySelector("[data-phone]").value);
+        if (!phoneValid(national)) {
           errEl.innerHTML = `<div class="db-error">${t(L, "phoneInvalid")}</div>`;
           return;
         }
+        const phoneVal = "+373" + national;
 
         if (!form.reportValidity()) return;
 
@@ -708,6 +753,7 @@
               slot_id: s.id,
               student_name: fd.get("student_name"),
               student_phone: phoneVal,
+              website: fd.get("website") || "",
               notes: fd.get("pickup") || null,
               lesson_type: state.lessonType,
               source: state.source,
