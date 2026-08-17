@@ -214,8 +214,13 @@
     border:2px solid var(--orange);background:var(--orange-tint)}
   .demo .lbl{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
     color:var(--orange-deep)}
-  .demo .link{display:inline-block;margin-top:8px;font-size:20px;font-weight:800;color:var(--ink);
-    letter-spacing:-.01em;text-decoration:none}
+  .demo .btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;
+    margin-top:12px;min-height:52px;padding:14px 18px;border-radius:14px;
+    font-size:17px;font-weight:800;letter-spacing:-.01em;text-decoration:none;
+    background:var(--orange);color:#111417;
+    box-shadow:0 14px 30px -16px rgba(249,129,42,.75);transition:transform .15s ease}
+  .demo .btn:active{transform:translateY(1px) scale(.99)}
+  .demo .dom{margin-top:10px;font-size:12px;color:var(--muted);letter-spacing:.01em;white-space:nowrap}
   .demo .hint{margin-top:6px;font-size:12.5px;color:var(--muted)}
 
   /* ---- final CTA ---- */
@@ -499,7 +504,8 @@
     </p>
     <div class="demo">
       <div class="lbl">Живое демо</div>
-      <a class="link" href="https://permispro.onrender.com" target="_blank" rel="noopener">https://permispro.onrender.com</a>
+      <a class="btn" href="https://permispro.onrender.com" target="_blank" rel="noopener">Открыть демо-сайт →</a>
+      <div class="dom">permispro.onrender.com</div>
       <div class="hint">Откройте с телефона — запишитесь на урок за 2 минуты</div>
     </div>
   </section>
