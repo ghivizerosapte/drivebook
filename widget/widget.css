@@ -213,7 +213,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--c-navy);
+  color: var(--c-ink);
   padding: 12px 0;
   width: 100%;
 }
@@ -267,7 +267,7 @@
   flex-shrink: 0;
   transition: all 0.15s;
 }
-.db-date-arrow:hover:not(:disabled) { border-color: var(--c-amber); color: var(--c-navy); }
+.db-date-arrow:hover:not(:disabled) { border-color: var(--c-amber); color: var(--c-ink); }
 .db-date-arrow:disabled { opacity: 0.3; cursor: default; }
 .db-date-scroll {
   display: flex;
@@ -292,7 +292,7 @@
 }
 .db-date-card.active {
   border-color: var(--c-amber);
-  color: var(--c-navy);
+  color: var(--c-ink);
 }
 .db-date-dow {
   font-size: 11px;
@@ -301,14 +301,14 @@
   letter-spacing: 0.05em;
   color: var(--c-muted);
 }
-.db-date-card.active .db-date-dow { color: var(--c-navy); }
+.db-date-card.active .db-date-dow { color: var(--c-ink); }
 .db-date-day {
   font-size: 26px;
   font-weight: 700;
   line-height: 1;
   color: var(--c-ink);
 }
-.db-date-card.active .db-date-day { color: var(--c-navy); }
+.db-date-card.active .db-date-day { color: var(--c-ink); }
 .db-date-mon {
   font-size: 11px;
   font-weight: 600;
@@ -316,7 +316,7 @@
   letter-spacing: 0.05em;
   color: var(--c-muted);
 }
-.db-date-card.active .db-date-mon { color: var(--c-navy); }
+.db-date-card.active .db-date-mon { color: var(--c-ink); }
 
 /* ── Slot row ───────────────────────────────────────────── */
 .db-slot-list {
@@ -355,7 +355,7 @@
   font-weight: 600;
   color: var(--c-ink);
 }
-.db-slot-row.active .db-slot-time { color: var(--c-navy); }
+.db-slot-row.active .db-slot-time { color: var(--c-ink); }
 .db-slot-sub {
   font-size: 12px;
   color: var(--c-muted);
@@ -640,7 +640,7 @@
   width: 100%;
   padding: 14px;
   background: none;
-  color: var(--c-navy);
+  color: var(--c-ink);
   border: 1.5px solid var(--c-amber);
   border-radius: var(--r-btn);
   font: inherit;
