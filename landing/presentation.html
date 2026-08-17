@@ -758,8 +758,9 @@
 
     var stored = null;
     try { stored = localStorage.getItem(LS_KEY); } catch(e){}
-    var initial = (stored === "ro" || stored === "ru") ? stored
-      : ((navigator.language || "").toLowerCase().indexOf("ro") === 0 ? "ro" : "ru");
+    // Default is Romanian: an empty localStorage always opens RO,
+    // regardless of navigator.language. A stored choice is respected.
+    var initial = (stored === "ro" || stored === "ru") ? stored : "ro";
     applyLang(initial);
 
     document.querySelectorAll(".lang-switch button").forEach(function(btn){
